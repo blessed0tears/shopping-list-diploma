@@ -16,6 +16,12 @@ public class ShoppingItem
 
     public string? Comment { get; set; }
 
+    public string Priority { get; set; } = "Обычный";
+
+    public decimal? EstimatedPrice { get; set; }
+
+    public string? AssignedToUserId { get; set; }
+
     public bool IsPurchased { get; set; }
 
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
@@ -31,6 +37,8 @@ public class ShoppingItem
     public ApplicationUser? CreatedByUser { get; set; }
 
     public ApplicationUser? PurchasedByUser { get; set; }
+
+    public ApplicationUser? AssignedToUser { get; set; }
 
     public ICollection<ItemHistory> HistoryEntries { get; set; } = new List<ItemHistory>();
 }

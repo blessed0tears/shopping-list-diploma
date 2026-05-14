@@ -97,6 +97,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(item => item.Comment)
                 .HasMaxLength(500);
 
+            entity.Property(item => item.Priority)
+                .HasMaxLength(50)
+                .IsRequired();
+
+            entity.Property(item => item.EstimatedPrice)
+                .HasColumnType("decimal(18,2)");
+
             entity.HasOne(item => item.ShoppingList)
                 .WithMany(list => list.Items)
                 .HasForeignKey(item => item.ShoppingListId)
@@ -111,6 +118,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .WithMany()
                 .HasForeignKey(item => item.PurchasedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(item => item.AssignedToUser)
+                .WithMany()
+                .HasForeignKey(item => item.AssignedToUserId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         builder.Entity<ItemHistory>(entity =>

@@ -178,7 +178,7 @@ public class ShoppingListsController : Controller
         return RedirectToAction("Details", "ShoppingGroups", new { id = groupId });
     }
 
-    public async Task<IActionResult> Details(int id, string filter = ShoppingItemFilter.All)
+    public async Task<IActionResult> Details(int id, string filter = ShoppingItemFilter.All, string? search = null, string? category = null, string sort = ShoppingItemSortOrder.CreatedDesc)
     {
         var shoppingList = await GetUserLists()
             .AsNoTracking()
@@ -187,6 +187,8 @@ public class ShoppingListsController : Controller
                 .ThenInclude(item => item.CreatedByUser)
             .Include(list => list.Items)
                 .ThenInclude(item => item.PurchasedByUser)
+            .Include(list => list.Items)
+                .ThenInclude(item => item.AssignedToUser)
             .FirstOrDefaultAsync(list => list.Id == id);
 
         if (shoppingList is null)
@@ -195,12 +197,33 @@ public class ShoppingListsController : Controller
         }
 
         var normalizedFilter = NormalizeFilter(filter);
+        var normalizedCategory = NormalizeCategory(category);
+        var normalizedSort = NormalizeSort(sort);
+        var normalizedSearch = string.IsNullOrWhiteSpace(search) ? null : search.Trim();
         var items = shoppingList.Items.AsEnumerable();
         items = normalizedFilter switch
         {
             ShoppingItemFilter.Purchased => items.Where(item => item.IsPurchased),
             ShoppingItemFilter.Active => items.Where(item => !item.IsPurchased),
             _ => items
+        };
+
+        if (!string.IsNullOrWhiteSpace(normalizedSearch))
+        {
+            items = items.Where(item => item.Name.Contains(normalizedSearch, StringComparison.CurrentCultureIgnoreCase));
+        }
+
+        if (!string.IsNullOrWhiteSpace(normalizedCategory))
+        {
+            items = items.Where(item => item.Category == normalizedCategory);
+        }
+
+        items = normalizedSort switch
+        {
+            ShoppingItemSortOrder.CreatedAsc => items.OrderBy(item => item.CreatedAtUtc),
+            ShoppingItemSortOrder.NameAsc => items.OrderBy(item => item.Name),
+            ShoppingItemSortOrder.NameDesc => items.OrderByDescending(item => item.Name),
+            _ => items.OrderByDescending(item => item.CreatedAtUtc)
         };
 
         var itemIds = shoppingList.Items.Select(item => item.Id).ToList();
@@ -212,11 +235,21 @@ public class ShoppingListsController : Controller
             .OrderByDescending(history => history.CreatedAtUtc)
             .ToListAsync();
 
+        var groupMembers = await GetGroupMembersAsync(shoppingList.ShoppingGroupId);
+
         return View(new ShoppingListDetailsViewModel
         {
             ShoppingList = shoppingList,
             Filter = normalizedFilter,
-            Items = items.OrderBy(item => item.IsPurchased).ThenBy(item => item.Name).ToList(),
+            SearchQuery = normalizedSearch,
+            CategoryFilter = normalizedCategory,
+            SortOrder = normalizedSort,
+            TotalEstimatedPrice = shoppingList.Items.Sum(item => item.EstimatedPrice ?? 0),
+            PurchasedEstimatedPrice = shoppingList.Items.Where(item => item.IsPurchased).Sum(item => item.EstimatedPrice ?? 0),
+            ActiveEstimatedPrice = shoppingList.Items.Where(item => !item.IsPurchased).Sum(item => item.EstimatedPrice ?? 0),
+            TotalItemCount = shoppingList.Items.Count,
+            Items = items.ToList(),
+            GroupMembers = groupMembers,
             HistoryEntries = historyEntries,
             AddItemForm = new ShoppingItemFormViewModel
             {
@@ -245,6 +278,7 @@ public class ShoppingListsController : Controller
 
         ValidateUnit(model);
         ValidateCategory(model);
+        await ValidateAssignedUserAsync(model, shoppingList.ShoppingGroupId);
         if (!ModelState.IsValid)
         {
             TempData["ErrorMessage"] = "Проверьте данные товара.";
@@ -261,6 +295,9 @@ public class ShoppingListsController : Controller
             Unit = unit,
             Category = model.Category,
             Comment = NormalizeComment(model.Comment),
+            Priority = model.Priority,
+            EstimatedPrice = model.EstimatedPrice,
+            AssignedToUserId = NormalizeAssignedUserId(model.AssignedToUserId),
             CreatedByUserId = userId,
             HistoryEntries =
             {
@@ -268,7 +305,7 @@ public class ShoppingListsController : Controller
                 {
                     ApplicationUserId = userId,
                     Action = "Created",
-                    NewValue = FormatItemValue(model.Name, model.Quantity, unit, model.Category, model.Comment)
+                    NewValue = FormatItemValue(model.Name, model.Quantity, unit, model.Category, model.Comment, model.Priority, model.EstimatedPrice)
                 }
             }
         };
@@ -299,7 +336,10 @@ public class ShoppingListsController : Controller
             return RedirectToAction(nameof(Details), new { id = item.ShoppingListId });
         }
 
-        return View(CreateItemFormViewModel(item));
+        var formModel = CreateItemFormViewModel(item);
+        formModel.GroupMembers = await GetGroupMembersAsync(item.ShoppingList.ShoppingGroupId);
+
+        return View(formModel);
     }
 
     [HttpPost]
@@ -323,27 +363,32 @@ public class ShoppingListsController : Controller
 
         ValidateUnit(model);
         ValidateCategory(model);
+        await ValidateAssignedUserAsync(model, item.ShoppingList.ShoppingGroupId);
         if (!ModelState.IsValid)
         {
             model.ShoppingListId = item.ShoppingListId;
+            model.GroupMembers = await GetGroupMembersAsync(item.ShoppingList.ShoppingGroupId);
             return View(model);
         }
 
         var userId = GetCurrentUserId();
         var unit = ResolveUnit(model);
-        var oldValue = FormatItemValue(item.Name, item.Quantity, item.Unit, item.Category, item.Comment);
+        var oldValue = FormatItemValue(item.Name, item.Quantity, item.Unit, item.Category, item.Comment, item.Priority, item.EstimatedPrice);
 
         item.Name = model.Name;
         item.Quantity = model.Quantity;
         item.Unit = unit;
         item.Category = model.Category;
         item.Comment = NormalizeComment(model.Comment);
+        item.Priority = model.Priority;
+        item.EstimatedPrice = model.EstimatedPrice;
+        item.AssignedToUserId = NormalizeAssignedUserId(model.AssignedToUserId);
         item.HistoryEntries.Add(new ItemHistory
         {
             ApplicationUserId = userId,
             Action = "Updated",
             OldValue = oldValue,
-            NewValue = FormatItemValue(item.Name, item.Quantity, item.Unit, item.Category, item.Comment)
+            NewValue = FormatItemValue(item.Name, item.Quantity, item.Unit, item.Category, item.Comment, item.Priority, item.EstimatedPrice)
         });
 
         await _context.SaveChangesAsync();
@@ -430,7 +475,10 @@ public class ShoppingListsController : Controller
             Unit = isKnownUnit ? item.Unit : ShoppingItemFormViewModel.OtherUnitValue,
             CustomUnit = isKnownUnit ? null : item.Unit,
             Category = item.Category,
-            Comment = item.Comment
+            Comment = item.Comment,
+            Priority = item.Priority,
+            EstimatedPrice = item.EstimatedPrice,
+            AssignedToUserId = item.AssignedToUserId
         };
     }
 
@@ -448,6 +496,28 @@ public class ShoppingListsController : Controller
         if (!ShoppingItemFormViewModel.CategoryOptions.Contains(model.Category))
         {
             ModelState.AddModelError(nameof(model.Category), "Выберите категорию из списка.");
+        }
+
+        if (!ShoppingItemFormViewModel.PriorityOptions.Contains(model.Priority))
+        {
+            ModelState.AddModelError(nameof(model.Priority), "Выберите приоритет из списка.");
+        }
+    }
+
+    private async Task ValidateAssignedUserAsync(ShoppingItemFormViewModel model, int shoppingGroupId)
+    {
+        var assignedUserId = NormalizeAssignedUserId(model.AssignedToUserId);
+        if (assignedUserId is null)
+        {
+            return;
+        }
+
+        var isGroupMember = await _context.GroupMembers
+            .AnyAsync(member => member.ShoppingGroupId == shoppingGroupId
+                && member.ApplicationUserId == assignedUserId);
+        if (!isGroupMember)
+        {
+            ModelState.AddModelError(nameof(model.AssignedToUserId), "Выберите ответственного из участников группы.");
         }
     }
 
@@ -474,12 +544,49 @@ public class ShoppingListsController : Controller
         return string.IsNullOrWhiteSpace(comment) ? null : comment.Trim();
     }
 
-    private static string FormatItemValue(string name, decimal quantity, string? unit, string category, string? comment)
+    private static string? NormalizeAssignedUserId(string? assignedUserId)
+    {
+        return string.IsNullOrWhiteSpace(assignedUserId) ? null : assignedUserId;
+    }
+
+    private static string? NormalizeCategory(string? category)
+    {
+        if (string.IsNullOrWhiteSpace(category))
+        {
+            return null;
+        }
+
+        return ShoppingItemFormViewModel.CategoryOptions.Contains(category) ? category : null;
+    }
+
+    private static string NormalizeSort(string? sort)
+    {
+        return sort switch
+        {
+            ShoppingItemSortOrder.CreatedAsc => ShoppingItemSortOrder.CreatedAsc,
+            ShoppingItemSortOrder.NameAsc => ShoppingItemSortOrder.NameAsc,
+            ShoppingItemSortOrder.NameDesc => ShoppingItemSortOrder.NameDesc,
+            _ => ShoppingItemSortOrder.CreatedDesc
+        };
+    }
+
+    private static string FormatItemValue(string name, decimal quantity, string? unit, string category, string? comment, string priority, decimal? estimatedPrice)
     {
         var unitText = string.IsNullOrWhiteSpace(unit) ? "без ед. изм." : unit;
         var commentText = string.IsNullOrWhiteSpace(comment) ? "без комментария" : comment;
+        var priceText = estimatedPrice.HasValue ? $"{estimatedPrice.Value:N2} ₽" : "без цены";
 
-        return $"{name}; количество: {quantity} {unitText}; категория: {category}; комментарий: {commentText}";
+        return $"{name}; количество: {quantity} {unitText}; категория: {category}; приоритет: {priority}; цена: {priceText}; комментарий: {commentText}";
+    }
+
+    private async Task<List<GroupMember>> GetGroupMembersAsync(int shoppingGroupId)
+    {
+        return await _context.GroupMembers
+            .AsNoTracking()
+            .Include(member => member.ApplicationUser)
+            .Where(member => member.ShoppingGroupId == shoppingGroupId)
+            .OrderBy(member => member.ApplicationUser.Email)
+            .ToListAsync();
     }
 
     private IQueryable<ShoppingGroup> GetUserGroups()

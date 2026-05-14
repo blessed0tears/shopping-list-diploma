@@ -164,18 +164,22 @@ partial class ApplicationDbContextModelSnapshot : ModelSnapshot
         {
             b.Property<int>("Id").ValueGeneratedOnAdd().HasColumnType("int");
             SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+            b.Property<string>("AssignedToUserId").HasColumnType("nvarchar(450)");
             b.Property<string>("Category").IsRequired().HasMaxLength(100).HasColumnType("nvarchar(100)");
             b.Property<string>("Comment").HasMaxLength(500).HasColumnType("nvarchar(500)");
             b.Property<string>("CreatedByUserId").HasColumnType("nvarchar(450)");
             b.Property<DateTime>("CreatedAtUtc").HasColumnType("datetime2");
+            b.Property<decimal?>("EstimatedPrice").HasColumnType("decimal(18,2)");
             b.Property<bool>("IsPurchased").HasColumnType("bit");
             b.Property<string>("Name").IsRequired().HasMaxLength(200).HasColumnType("nvarchar(200)");
             b.Property<DateTime?>("PurchasedAtUtc").HasColumnType("datetime2");
             b.Property<string>("PurchasedByUserId").HasColumnType("nvarchar(450)");
+            b.Property<string>("Priority").IsRequired().HasMaxLength(50).HasColumnType("nvarchar(50)");
             b.Property<decimal>("Quantity").HasColumnType("decimal(18,2)");
             b.Property<int>("ShoppingListId").HasColumnType("int");
             b.Property<string>("Unit").HasMaxLength(50).HasColumnType("nvarchar(50)");
             b.HasKey("Id");
+            b.HasIndex("AssignedToUserId");
             b.HasIndex("CreatedByUserId");
             b.HasIndex("PurchasedByUserId");
             b.HasIndex("ShoppingListId");
@@ -245,9 +249,11 @@ partial class ApplicationDbContextModelSnapshot : ModelSnapshot
 
         modelBuilder.Entity("ShoppingListDiploma.Models.ShoppingItem", b =>
         {
+            b.HasOne("ShoppingListDiploma.Models.ApplicationUser", "AssignedToUser").WithMany().HasForeignKey("AssignedToUserId").OnDelete(DeleteBehavior.SetNull);
             b.HasOne("ShoppingListDiploma.Models.ApplicationUser", "CreatedByUser").WithMany().HasForeignKey("CreatedByUserId").OnDelete(DeleteBehavior.Restrict);
             b.HasOne("ShoppingListDiploma.Models.ApplicationUser", "PurchasedByUser").WithMany().HasForeignKey("PurchasedByUserId").OnDelete(DeleteBehavior.Restrict);
             b.HasOne("ShoppingListDiploma.Models.ShoppingList", "ShoppingList").WithMany("Items").HasForeignKey("ShoppingListId").OnDelete(DeleteBehavior.Cascade).IsRequired();
+            b.Navigation("AssignedToUser");
             b.Navigation("CreatedByUser");
             b.Navigation("PurchasedByUser");
             b.Navigation("ShoppingList");

@@ -14,8 +14,10 @@
 
 @if (!Model.Groups.Any())
 {
-    <div class="alert alert-info">
-        У вас пока нет групп. Создайте первую группу, чтобы начать совместный список покупок.
+    <div class="empty-state">
+        <h2 class="h5">У вас пока нет групп</h2>
+        <p class="mb-3">Создайте первую группу, чтобы пригласить участников и вести совместные списки покупок.</p>
+        <a asp-action="Create" class="btn btn-primary">Создать первую группу</a>
     </div>
 }
 else

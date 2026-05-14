@@ -61,6 +61,35 @@
                 <span asp-validation-for="Comment" class="text-danger"></span>
             </div>
 
+            <div class="mb-3">
+                <label asp-for="Priority" class="form-label"></label>
+                <select asp-for="Priority" class="form-select">
+                    @foreach (var priority in ShoppingItemFormViewModel.PriorityOptions)
+                    {
+                        <option value="@priority">@priority</option>
+                    }
+                </select>
+                <span asp-validation-for="Priority" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="EstimatedPrice" class="form-label"></label>
+                <input asp-for="EstimatedPrice" class="form-control" type="number" min="0.01" step="0.01" />
+                <span asp-validation-for="EstimatedPrice" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="AssignedToUserId" class="form-label"></label>
+                <select asp-for="AssignedToUserId" class="form-select">
+                    <option value="">Не назначен</option>
+                    @foreach (var member in Model.GroupMembers)
+                    {
+                        <option value="@member.ApplicationUserId">@(member.ApplicationUser.DisplayName ?? member.ApplicationUser.Email)</option>
+                    }
+                </select>
+                <span asp-validation-for="AssignedToUserId" class="text-danger"></span>
+            </div>
+
             <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-primary">Сохранить</button>
                 <a asp-action="Details" asp-route-id="@Model.ShoppingListId" class="btn btn-outline-secondary">Отмена</a>

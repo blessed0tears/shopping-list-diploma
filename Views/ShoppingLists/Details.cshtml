@@ -33,6 +33,18 @@
     </div>
 </div>
 
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="benefit-card h-100">Общая примерная сумма: <strong>@FormatPrice(Model.TotalEstimatedPrice)</strong></div>
+    </div>
+    <div class="col-md-4">
+        <div class="benefit-card h-100">Куплено на сумму: <strong>@FormatPrice(Model.PurchasedEstimatedPrice)</strong></div>
+    </div>
+    <div class="col-md-4">
+        <div class="benefit-card h-100">Осталось купить: <strong>@FormatPrice(Model.ActiveEstimatedPrice)</strong></div>
+    </div>
+</div>
+
 @if (Model.ShoppingList.IsArchived)
 {
     <div class="alert alert-secondary shadow-sm">
@@ -91,13 +103,42 @@ else
                     <span asp-validation-for="AddItemForm.Category" class="text-danger"></span>
                 </div>
 
-                <div class="col-md-7">
+                <div class="col-md-3">
+                    <label asp-for="AddItemForm.Priority" class="form-label"></label>
+                    <select asp-for="AddItemForm.Priority" class="form-select">
+                        @foreach (var priority in ShoppingItemFormViewModel.PriorityOptions)
+                        {
+                            <option value="@priority">@priority</option>
+                        }
+                    </select>
+                    <span asp-validation-for="AddItemForm.Priority" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-3">
+                    <label asp-for="AddItemForm.EstimatedPrice" class="form-label"></label>
+                    <input asp-for="AddItemForm.EstimatedPrice" class="form-control" type="number" min="0.01" step="0.01" placeholder="Например: 250" />
+                    <span asp-validation-for="AddItemForm.EstimatedPrice" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-3">
+                    <label asp-for="AddItemForm.AssignedToUserId" class="form-label"></label>
+                    <select asp-for="AddItemForm.AssignedToUserId" class="form-select">
+                        <option value="">Не назначен</option>
+                        @foreach (var member in Model.GroupMembers)
+                        {
+                            <option value="@member.ApplicationUserId">@(member.ApplicationUser.DisplayName ?? member.ApplicationUser.Email)</option>
+                        }
+                    </select>
+                    <span asp-validation-for="AddItemForm.AssignedToUserId" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-9">
                     <label asp-for="AddItemForm.Comment" class="form-label"></label>
                     <input asp-for="AddItemForm.Comment" class="form-control" placeholder="Например: купить без сахара" />
                     <span asp-validation-for="AddItemForm.Comment" class="text-danger"></span>
                 </div>
 
-                <div class="col-md-2 d-flex align-items-end">
+                <div class="col-md-3 d-flex align-items-end">
                     <button type="submit" class="btn btn-primary w-100">Добавить</button>
                 </div>
             </form>
@@ -105,15 +146,61 @@ else
     </div>
 }
 
-<div class="d-flex flex-wrap gap-2 mb-3">
-    <a asp-action="Details" asp-route-id="@Model.ShoppingList.Id" asp-route-filter="all" class="btn @(Model.Filter == ShoppingItemFilter.All ? "btn-primary" : "btn-outline-primary")">Все</a>
-    <a asp-action="Details" asp-route-id="@Model.ShoppingList.Id" asp-route-filter="active" class="btn @(Model.Filter == ShoppingItemFilter.Active ? "btn-primary" : "btn-outline-primary")">Некупленные</a>
-    <a asp-action="Details" asp-route-id="@Model.ShoppingList.Id" asp-route-filter="purchased" class="btn @(Model.Filter == ShoppingItemFilter.Purchased ? "btn-primary" : "btn-outline-primary")">Купленные</a>
-</div>
+<form asp-action="Details" method="get" class="app-card mb-4">
+    <input type="hidden" name="id" value="@Model.ShoppingList.Id" />
+    <div class="row g-3 align-items-end">
+        <div class="col-md-3">
+            <label class="form-label" for="search">Поиск по названию</label>
+            <input id="search" name="search" value="@Model.SearchQuery" class="form-control" placeholder="Например: молоко" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label" for="filter">Статус</label>
+            <select id="filter" name="filter" class="form-select">
+                <option value="all" selected="@(Model.Filter == ShoppingItemFilter.All)">Все</option>
+                <option value="active" selected="@(Model.Filter == ShoppingItemFilter.Active)">Некупленные</option>
+                <option value="purchased" selected="@(Model.Filter == ShoppingItemFilter.Purchased)">Купленные</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label" for="category">Категория</label>
+            <select id="category" name="category" class="form-select">
+                <option value="">Все категории</option>
+                @foreach (var category in ShoppingItemFormViewModel.CategoryOptions)
+                {
+                    <option value="@category" selected="@(Model.CategoryFilter == category)">@category</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label" for="sort">Сортировка</label>
+            <select id="sort" name="sort" class="form-select">
+                <option value="created_desc" selected="@(Model.SortOrder == ShoppingItemSortOrder.CreatedDesc)">Сначала новые</option>
+                <option value="created_asc" selected="@(Model.SortOrder == ShoppingItemSortOrder.CreatedAsc)">Сначала старые</option>
+                <option value="name_asc" selected="@(Model.SortOrder == ShoppingItemSortOrder.NameAsc)">Название А-Я</option>
+                <option value="name_desc" selected="@(Model.SortOrder == ShoppingItemSortOrder.NameDesc)">Название Я-А</option>
+            </select>
+        </div>
+        <div class="col-md-2 d-grid gap-2">
+            <button type="submit" class="btn btn-primary">Применить</button>
+            <a asp-action="Details" asp-route-id="@Model.ShoppingList.Id" class="btn btn-outline-secondary">Сбросить</a>
+        </div>
+    </div>
+</form>
 
 @if (!Model.Items.Any())
 {
-    <div class="empty-state">По выбранному фильтру товаров нет.</div>
+    @if (Model.TotalItemCount == 0)
+    {
+        <div class="empty-state">В этом списке пока нет товаров. Добавьте первый товар через форму выше.</div>
+    }
+    else if (Model.HasActiveSearchOrFilters)
+    {
+        <div class="empty-state">Поиск и фильтры не нашли товаров. Измените параметры или сбросьте фильтрацию.</div>
+    }
+    else
+    {
+        <div class="empty-state">По выбранному статусу товаров нет.</div>
+    }
 }
 else
 {
@@ -124,7 +211,10 @@ else
                     <th>Статус</th>
                     <th>Товар</th>
                     <th>Категория</th>
+                    <th>Приоритет</th>
                     <th>Количество</th>
+                    <th>Цена</th>
+                    <th>Ответственный</th>
                     <th>Добавил</th>
                     <th>Купил</th>
                     <th class="text-end">Действия</th>
@@ -157,7 +247,10 @@ else
                             }
                         </td>
                         <td><span class="badge text-bg-light border">@item.Category</span></td>
+                        <td><span class="badge @PriorityBadgeClass(item.Priority)">@item.Priority</span></td>
                         <td>@item.Quantity @item.Unit</td>
+                        <td>@(item.EstimatedPrice.HasValue ? FormatPrice(item.EstimatedPrice.Value) : "—")</td>
+                        <td>@(item.AssignedToUser?.DisplayName ?? item.AssignedToUser?.Email ?? "Не назначен")</td>
                         <td>
                             <div>@(item.CreatedByUser?.DisplayName ?? item.CreatedByUser?.Email ?? "Неизвестно")</div>
                             <div class="small text-body-secondary">@item.CreatedAtUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</div>
@@ -249,6 +342,21 @@ else
             "Purchased" => "Товар отмечен как купленный",
             "PurchaseCanceled" => "Отметка покупки отменена",
             _ => action
+        };
+    }
+
+    private static string FormatPrice(decimal price)
+    {
+        return $"{price:N2} ₽";
+    }
+
+    private static string PriorityBadgeClass(string priority)
+    {
+        return priority switch
+        {
+            ShoppingItemPriority.High => "text-bg-danger",
+            ShoppingItemPriority.Low => "text-bg-secondary",
+            _ => "text-bg-primary"
         };
     }
 }

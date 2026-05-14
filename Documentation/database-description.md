@@ -80,6 +80,9 @@
 | Unit | string? | Единица измерения. |
 | Category | string | Категория товара. |
 | Comment | string? | Комментарий к товару. |
+| Priority | string | Приоритет товара: низкий, обычный или высокий. |
+| EstimatedPrice | decimal? | Необязательная примерная цена товара. |
+| AssignedToUserId | string? | Ответственный за покупку участник группы. |
 | IsPurchased | bool | Признак купленного товара. |
 | CreatedAtUtc | DateTime | Дата добавления товара в UTC. |
 | PurchasedAtUtc | DateTime? | Дата отметки товара как купленного. |

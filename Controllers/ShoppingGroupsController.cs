@@ -232,6 +232,17 @@ public class ShoppingGroupsController : Controller
             return RedirectToAction(nameof(Details), new { id });
         }
 
+        var removedUserId = member.ApplicationUserId;
+        var assignedItems = await _context.ShoppingItems
+            .Where(item => item.AssignedToUserId == removedUserId
+                && item.ShoppingList.ShoppingGroupId == group.Id)
+            .ToListAsync();
+
+        foreach (var item in assignedItems)
+        {
+            item.AssignedToUserId = null;
+        }
+
         _context.GroupMembers.Remove(member);
         await _context.SaveChangesAsync();
         TempData["SuccessMessage"] = "Участник удалён.";
