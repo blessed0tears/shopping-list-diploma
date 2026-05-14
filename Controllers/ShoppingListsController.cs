@@ -20,16 +20,18 @@ public class ShoppingListsController : Controller
 
     public async Task<IActionResult> Index()
     {
-        var userId = GetCurrentUserId();
-        var lists = await _context.ShoppingLists
+        var lists = await GetUserLists()
             .AsNoTracking()
             .Include(list => list.ShoppingGroup)
-            .Where(list => list.ShoppingGroup.Members.Any(member => member.ApplicationUserId == userId))
             .OrderBy(list => list.ShoppingGroup.Name)
             .ThenBy(list => list.Name)
             .ToListAsync();
 
-        return View(lists);
+        return View(new ShoppingListsIndexViewModel
+        {
+            ActiveLists = lists.Where(list => !list.IsArchived).ToList(),
+            ArchivedLists = lists.Where(list => list.IsArchived).ToList()
+        });
     }
 
     [HttpGet]
@@ -83,6 +85,99 @@ public class ShoppingListsController : Controller
         return RedirectToAction(nameof(Details), new { id = shoppingList.Id });
     }
 
+    [HttpGet]
+    public async Task<IActionResult> Edit(int id)
+    {
+        var shoppingList = await GetUserLists()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(list => list.Id == id);
+
+        if (shoppingList is null)
+        {
+            return NotFound();
+        }
+
+        return View(new EditShoppingListViewModel
+        {
+            Id = shoppingList.Id,
+            ShoppingGroupId = shoppingList.ShoppingGroupId,
+            Name = shoppingList.Name,
+            IsArchived = shoppingList.IsArchived
+        });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Edit(int id, EditShoppingListViewModel model)
+    {
+        if (id != model.Id)
+        {
+            return BadRequest();
+        }
+
+        var shoppingList = await GetUserLists()
+            .FirstOrDefaultAsync(list => list.Id == id);
+
+        if (shoppingList is null)
+        {
+            return NotFound();
+        }
+
+        if (!ModelState.IsValid)
+        {
+            model.ShoppingGroupId = shoppingList.ShoppingGroupId;
+            return View(model);
+        }
+
+        shoppingList.Name = model.Name;
+        shoppingList.IsArchived = model.IsArchived;
+        await _context.SaveChangesAsync();
+        TempData["SuccessMessage"] = "Изменения сохранены.";
+
+        return RedirectToAction(nameof(Details), new { id = shoppingList.Id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleArchive(int id)
+    {
+        var shoppingList = await GetUserLists()
+            .FirstOrDefaultAsync(list => list.Id == id);
+
+        if (shoppingList is null)
+        {
+            return NotFound();
+        }
+
+        shoppingList.IsArchived = !shoppingList.IsArchived;
+        await _context.SaveChangesAsync();
+        TempData["SuccessMessage"] = shoppingList.IsArchived
+            ? "Список архивирован."
+            : "Список восстановлен из архива.";
+
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var shoppingList = await GetUserLists()
+            .FirstOrDefaultAsync(list => list.Id == id);
+
+        if (shoppingList is null)
+        {
+            return NotFound();
+        }
+
+        var groupId = shoppingList.ShoppingGroupId;
+        _context.ShoppingLists.Remove(shoppingList);
+        await _context.SaveChangesAsync();
+        TempData["SuccessMessage"] = "Список удалён.";
+
+        return RedirectToAction("Details", "ShoppingGroups", new { id = groupId });
+    }
+
     public async Task<IActionResult> Details(int id, string filter = ShoppingItemFilter.All)
     {
         var shoppingList = await GetUserLists()
@@ -108,11 +203,21 @@ public class ShoppingListsController : Controller
             _ => items
         };
 
+        var itemIds = shoppingList.Items.Select(item => item.Id).ToList();
+        var historyEntries = await _context.ItemHistories
+            .AsNoTracking()
+            .Include(history => history.ApplicationUser)
+            .Include(history => history.ShoppingItem)
+            .Where(history => itemIds.Contains(history.ShoppingItemId))
+            .OrderByDescending(history => history.CreatedAtUtc)
+            .ToListAsync();
+
         return View(new ShoppingListDetailsViewModel
         {
             ShoppingList = shoppingList,
             Filter = normalizedFilter,
             Items = items.OrderBy(item => item.IsPurchased).ThenBy(item => item.Name).ToList(),
+            HistoryEntries = historyEntries,
             AddItemForm = new ShoppingItemFormViewModel
             {
                 ShoppingListId = shoppingList.Id
@@ -132,7 +237,14 @@ public class ShoppingListsController : Controller
             return NotFound();
         }
 
+        if (shoppingList.IsArchived)
+        {
+            TempData["ErrorMessage"] = "В архивный список нельзя добавлять товары.";
+            return RedirectToAction(nameof(Details), new { id = model.ShoppingListId });
+        }
+
         ValidateUnit(model);
+        ValidateCategory(model);
         if (!ModelState.IsValid)
         {
             TempData["ErrorMessage"] = "Проверьте данные товара.";
@@ -147,6 +259,8 @@ public class ShoppingListsController : Controller
             Name = model.Name,
             Quantity = model.Quantity,
             Unit = unit,
+            Category = model.Category,
+            Comment = NormalizeComment(model.Comment),
             CreatedByUserId = userId,
             HistoryEntries =
             {
@@ -154,7 +268,7 @@ public class ShoppingListsController : Controller
                 {
                     ApplicationUserId = userId,
                     Action = "Created",
-                    NewValue = model.Name
+                    NewValue = FormatItemValue(model.Name, model.Quantity, unit, model.Category, model.Comment)
                 }
             }
         };
@@ -171,11 +285,18 @@ public class ShoppingListsController : Controller
     {
         var item = await GetUserItems()
             .AsNoTracking()
+            .Include(item => item.ShoppingList)
             .FirstOrDefaultAsync(existingItem => existingItem.Id == id);
 
         if (item is null)
         {
             return NotFound();
+        }
+
+        if (item.ShoppingList.IsArchived)
+        {
+            TempData["ErrorMessage"] = "Архивный список доступен только для просмотра.";
+            return RedirectToAction(nameof(Details), new { id = item.ShoppingListId });
         }
 
         return View(CreateItemFormViewModel(item));
@@ -186,6 +307,7 @@ public class ShoppingListsController : Controller
     public async Task<IActionResult> EditItem(int id, ShoppingItemFormViewModel model)
     {
         var item = await GetUserItems()
+            .Include(item => item.ShoppingList)
             .FirstOrDefaultAsync(existingItem => existingItem.Id == id);
 
         if (item is null)
@@ -193,7 +315,14 @@ public class ShoppingListsController : Controller
             return NotFound();
         }
 
+        if (item.ShoppingList.IsArchived)
+        {
+            TempData["ErrorMessage"] = "Архивный список доступен только для просмотра.";
+            return RedirectToAction(nameof(Details), new { id = item.ShoppingListId });
+        }
+
         ValidateUnit(model);
+        ValidateCategory(model);
         if (!ModelState.IsValid)
         {
             model.ShoppingListId = item.ShoppingListId;
@@ -202,17 +331,19 @@ public class ShoppingListsController : Controller
 
         var userId = GetCurrentUserId();
         var unit = ResolveUnit(model);
-        var oldValue = $"{item.Name} ({item.Quantity} {item.Unit})";
+        var oldValue = FormatItemValue(item.Name, item.Quantity, item.Unit, item.Category, item.Comment);
 
         item.Name = model.Name;
         item.Quantity = model.Quantity;
         item.Unit = unit;
+        item.Category = model.Category;
+        item.Comment = NormalizeComment(model.Comment);
         item.HistoryEntries.Add(new ItemHistory
         {
             ApplicationUserId = userId,
             Action = "Updated",
             OldValue = oldValue,
-            NewValue = $"{item.Name} ({item.Quantity} {item.Unit})"
+            NewValue = FormatItemValue(item.Name, item.Quantity, item.Unit, item.Category, item.Comment)
         });
 
         await _context.SaveChangesAsync();
@@ -226,11 +357,18 @@ public class ShoppingListsController : Controller
     public async Task<IActionResult> DeleteItem(int id)
     {
         var item = await GetUserItems()
+            .Include(item => item.ShoppingList)
             .FirstOrDefaultAsync(existingItem => existingItem.Id == id);
 
         if (item is null)
         {
             return NotFound();
+        }
+
+        if (item.ShoppingList.IsArchived)
+        {
+            TempData["ErrorMessage"] = "Архивный список доступен только для просмотра.";
+            return RedirectToAction(nameof(Details), new { id = item.ShoppingListId });
         }
 
         var listId = item.ShoppingListId;
@@ -246,11 +384,18 @@ public class ShoppingListsController : Controller
     public async Task<IActionResult> TogglePurchased(int id)
     {
         var item = await GetUserItems()
+            .Include(item => item.ShoppingList)
             .FirstOrDefaultAsync(existingItem => existingItem.Id == id);
 
         if (item is null)
         {
             return NotFound();
+        }
+
+        if (item.ShoppingList.IsArchived)
+        {
+            TempData["ErrorMessage"] = "Архивный список доступен только для просмотра.";
+            return RedirectToAction(nameof(Details), new { id = item.ShoppingListId });
         }
 
         var userId = GetCurrentUserId();
@@ -283,7 +428,9 @@ public class ShoppingListsController : Controller
             Name = item.Name,
             Quantity = item.Quantity,
             Unit = isKnownUnit ? item.Unit : ShoppingItemFormViewModel.OtherUnitValue,
-            CustomUnit = isKnownUnit ? null : item.Unit
+            CustomUnit = isKnownUnit ? null : item.Unit,
+            Category = item.Category,
+            Comment = item.Comment
         };
     }
 
@@ -293,6 +440,14 @@ public class ShoppingListsController : Controller
             && string.IsNullOrWhiteSpace(model.CustomUnit))
         {
             ModelState.AddModelError(nameof(model.CustomUnit), "Введите свою единицу измерения или выберите вариант из списка.");
+        }
+    }
+
+    private void ValidateCategory(ShoppingItemFormViewModel model)
+    {
+        if (!ShoppingItemFormViewModel.CategoryOptions.Contains(model.Category))
+        {
+            ModelState.AddModelError(nameof(model.Category), "Выберите категорию из списка.");
         }
     }
 
@@ -312,6 +467,19 @@ public class ShoppingListsController : Controller
         }
 
         return selectedUnit;
+    }
+
+    private static string? NormalizeComment(string? comment)
+    {
+        return string.IsNullOrWhiteSpace(comment) ? null : comment.Trim();
+    }
+
+    private static string FormatItemValue(string name, decimal quantity, string? unit, string category, string? comment)
+    {
+        var unitText = string.IsNullOrWhiteSpace(unit) ? "без ед. изм." : unit;
+        var commentText = string.IsNullOrWhiteSpace(comment) ? "без комментария" : comment;
+
+        return $"{name}; количество: {quantity} {unitText}; категория: {category}; комментарий: {commentText}";
     }
 
     private IQueryable<ShoppingGroup> GetUserGroups()

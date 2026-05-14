@@ -90,6 +90,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(item => item.Unit)
                 .HasMaxLength(50);
 
+            entity.Property(item => item.Category)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.Property(item => item.Comment)
+                .HasMaxLength(500);
+
             entity.HasOne(item => item.ShoppingList)
                 .WithMany(list => list.Items)
                 .HasForeignKey(item => item.ShoppingListId)

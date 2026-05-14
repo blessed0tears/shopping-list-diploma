@@ -19,12 +19,12 @@ flowchart LR
     ViewGroup((Просмотр группы))
     CreateList((Создание списка покупок))
     ViewList((Просмотр списка покупок))
-    AddItem((Добавление товара))
+    AddItem((Добавление товара с категорией и комментарием))
     EditItem((Редактирование товара))
     DeleteItem((Удаление товара))
     TogglePurchased((Отметка товара как купленного))
     FilterItems((Фильтрация товаров))
-    ViewAudit((Просмотр автора добавления и покупки))
+    ViewAudit((Просмотр автора и истории изменений))
 
     Guest --> Register
     Guest --> Login
@@ -40,9 +40,12 @@ flowchart LR
     User --> DeleteItem
     User --> TogglePurchased
     User --> FilterItems
+    User --> ArchiveList((Архивирование списка))
     User --> ViewAudit
 
     Owner --> AddMember
+    Owner --> EditGroup((Редактирование группы))
+    Owner --> RemoveMember((Удаление участника))
     Owner --> ViewGroup
     Owner --> CreateList
 

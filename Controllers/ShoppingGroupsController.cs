@@ -90,25 +90,88 @@ public class ShoppingGroupsController : Controller
             return NotFound();
         }
 
+        var userId = GetCurrentUserId();
+        var isOwner = IsOwner(group, userId);
+        var activeLists = group.ShoppingLists
+            .Where(list => !list.IsArchived)
+            .OrderBy(list => list.Name)
+            .ToList();
+        var archivedLists = group.ShoppingLists
+            .Where(list => list.IsArchived)
+            .OrderBy(list => list.Name)
+            .ToList();
+
         return View(new ShoppingGroupDetailsViewModel
         {
             Group = group,
             Members = group.Members.OrderBy(member => member.ApplicationUser.Email).ToList(),
-            ShoppingLists = group.ShoppingLists.OrderBy(list => list.Name).ToList()
+            ActiveShoppingLists = activeLists,
+            ArchivedShoppingLists = archivedLists,
+            IsCurrentUserOwner = isOwner
         });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Edit(int id)
+    {
+        var group = await GetOwnedGroupQuery()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(group => group.Id == id);
+
+        if (group is null)
+        {
+            return Forbid();
+        }
+
+        return View(new EditShoppingGroupViewModel
+        {
+            Id = group.Id,
+            Name = group.Name,
+            Description = group.Description
+        });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Edit(int id, EditShoppingGroupViewModel model)
+    {
+        if (id != model.Id)
+        {
+            return BadRequest();
+        }
+
+        var group = await GetOwnedGroupQuery()
+            .FirstOrDefaultAsync(group => group.Id == id);
+
+        if (group is null)
+        {
+            return Forbid();
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        group.Name = model.Name;
+        group.Description = model.Description;
+        await _context.SaveChangesAsync();
+        TempData["SuccessMessage"] = "Изменения сохранены.";
+
+        return RedirectToAction(nameof(Details), new { id = group.Id });
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AddMember(int id, AddGroupMemberViewModel model)
     {
-        var group = await GetUserGroupQuery()
+        var group = await GetOwnedGroupQuery()
             .Include(group => group.Members)
             .FirstOrDefaultAsync(group => group.Id == id);
 
         if (group is null)
         {
-            return NotFound();
+            return Forbid();
         }
 
         if (!ModelState.IsValid)
@@ -139,7 +202,39 @@ public class ShoppingGroupsController : Controller
         });
 
         await _context.SaveChangesAsync();
-        TempData["SuccessMessage"] = "Участник добавлен в группу.";
+        TempData["SuccessMessage"] = "Участник добавлен.";
+
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RemoveMember(int id, int memberId)
+    {
+        var group = await GetOwnedGroupQuery()
+            .Include(group => group.Members)
+            .FirstOrDefaultAsync(group => group.Id == id);
+
+        if (group is null)
+        {
+            return Forbid();
+        }
+
+        var member = group.Members.FirstOrDefault(member => member.Id == memberId);
+        if (member is null)
+        {
+            return NotFound();
+        }
+
+        if (member.ApplicationUserId == group.OwnerId || member.Role == "Owner")
+        {
+            TempData["ErrorMessage"] = "Нельзя удалить владельца группы.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        _context.GroupMembers.Remove(member);
+        await _context.SaveChangesAsync();
+        TempData["SuccessMessage"] = "Участник удалён.";
 
         return RedirectToAction(nameof(Details), new { id });
     }
@@ -152,9 +247,24 @@ public class ShoppingGroupsController : Controller
             .Where(group => group.Members.Any(member => member.ApplicationUserId == userId));
     }
 
+    private IQueryable<ShoppingGroup> GetOwnedGroupQuery()
+    {
+        var userId = GetCurrentUserId();
+
+        return _context.ShoppingGroups
+            .Where(group => group.OwnerId == userId
+                || group.Members.Any(member => member.ApplicationUserId == userId && member.Role == "Owner"));
+    }
+
     private string GetCurrentUserId()
     {
         return User.FindFirstValue(ClaimTypes.NameIdentifier)
             ?? throw new InvalidOperationException("Current user id is not available.");
+    }
+
+    private static bool IsOwner(ShoppingGroup group, string userId)
+    {
+        return group.OwnerId == userId
+            || group.Members.Any(member => member.ApplicationUserId == userId && member.Role == "Owner");
     }
 }

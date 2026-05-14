@@ -20,6 +20,11 @@ public class CreateShoppingGroupViewModel
     public string? Description { get; set; }
 }
 
+public class EditShoppingGroupViewModel : CreateShoppingGroupViewModel
+{
+    public int Id { get; set; }
+}
+
 public class AddGroupMemberViewModel
 {
     [Required(ErrorMessage = "Введите email участника.")]
@@ -34,7 +39,11 @@ public class ShoppingGroupDetailsViewModel
 
     public IReadOnlyCollection<GroupMember> Members { get; set; } = Array.Empty<GroupMember>();
 
-    public IReadOnlyCollection<ShoppingList> ShoppingLists { get; set; } = Array.Empty<ShoppingList>();
+    public IReadOnlyCollection<ShoppingList> ActiveShoppingLists { get; set; } = Array.Empty<ShoppingList>();
+
+    public IReadOnlyCollection<ShoppingList> ArchivedShoppingLists { get; set; } = Array.Empty<ShoppingList>();
 
     public AddGroupMemberViewModel AddMemberForm { get; set; } = new();
+
+    public bool IsCurrentUserOwner { get; set; }
 }

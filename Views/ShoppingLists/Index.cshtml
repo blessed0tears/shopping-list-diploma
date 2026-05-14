@@ -1,30 +1,62 @@
-@model IEnumerable<ShoppingList>
+@model ShoppingListsIndexViewModel
 
 @{
     ViewData["Title"] = "Списки";
 }
 
 <h1 class="mb-1">Мои списки покупок</h1>
-<p class="text-muted">Показаны списки только из тех групп, где вы являетесь участником.</p>
+<p class="text-body-secondary mb-4">Показаны списки только из тех групп, где вы являетесь участником.</p>
 
-@if (!Model.Any())
-{
-    <div class="alert alert-info">
-        У вас пока нет списков. Откройте группу и создайте список покупок.
+<section class="mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h4 mb-0">Активные списки</h2>
+        <span class="badge text-bg-primary">@Model.ActiveLists.Count</span>
     </div>
-}
-else
-{
-    <div class="list-group shadow-sm">
-        @foreach (var shoppingList in Model)
-        {
-            <a asp-action="Details" asp-route-id="@shoppingList.Id" class="list-group-item list-group-item-action">
-                <div class="d-flex w-100 justify-content-between">
-                    <h2 class="h5 mb-1">@shoppingList.Name</h2>
-                    <small>@shoppingList.CreatedAtUtc.ToLocalTime().ToString("dd.MM.yyyy")</small>
-                </div>
-                <p class="mb-0 text-muted">Группа: @shoppingList.ShoppingGroup.Name</p>
-            </a>
-        }
+
+    @if (!Model.ActiveLists.Any())
+    {
+        <div class="empty-state">У вас пока нет активных списков. Откройте группу и создайте список покупок.</div>
+    }
+    else
+    {
+        <div class="list-group shadow-sm">
+            @foreach (var shoppingList in Model.ActiveLists)
+            {
+                <a asp-action="Details" asp-route-id="@shoppingList.Id" class="list-group-item list-group-item-action">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h3 class="h5 mb-1">@shoppingList.Name</h3>
+                        <small>@shoppingList.CreatedAtUtc.ToLocalTime().ToString("dd.MM.yyyy")</small>
+                    </div>
+                    <p class="mb-0 text-body-secondary">Группа: @shoppingList.ShoppingGroup.Name</p>
+                </a>
+            }
+        </div>
+    }
+</section>
+
+<section>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h4 mb-0">Архивные списки</h2>
+        <span class="badge text-bg-secondary">@Model.ArchivedLists.Count</span>
     </div>
-}
+
+    @if (!Model.ArchivedLists.Any())
+    {
+        <div class="empty-state">Архивных списков пока нет.</div>
+    }
+    else
+    {
+        <div class="list-group shadow-sm">
+            @foreach (var shoppingList in Model.ArchivedLists)
+            {
+                <a asp-action="Details" asp-route-id="@shoppingList.Id" class="list-group-item list-group-item-action">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h3 class="h5 mb-1">@shoppingList.Name</h3>
+                        <span class="badge text-bg-secondary">Архив</span>
+                    </div>
+                    <p class="mb-0 text-body-secondary">Группа: @shoppingList.ShoppingGroup.Name</p>
+                </a>
+            }
+        </div>
+    }
+</section>

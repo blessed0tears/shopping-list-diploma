@@ -164,6 +164,8 @@ partial class ApplicationDbContextModelSnapshot : ModelSnapshot
         {
             b.Property<int>("Id").ValueGeneratedOnAdd().HasColumnType("int");
             SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+            b.Property<string>("Category").IsRequired().HasMaxLength(100).HasColumnType("nvarchar(100)");
+            b.Property<string>("Comment").HasMaxLength(500).HasColumnType("nvarchar(500)");
             b.Property<string>("CreatedByUserId").HasColumnType("nvarchar(450)");
             b.Property<DateTime>("CreatedAtUtc").HasColumnType("datetime2");
             b.Property<bool>("IsPurchased").HasColumnType("bit");

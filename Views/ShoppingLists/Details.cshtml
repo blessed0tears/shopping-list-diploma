@@ -4,61 +4,106 @@
     ViewData["Title"] = Model.ShoppingList.Name;
 }
 
-<div class="d-flex justify-content-between align-items-start mb-4">
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
     <div>
-        <h1 class="mb-1">@Model.ShoppingList.Name</h1>
-        <p class="text-muted mb-0">
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+            <h1 class="mb-0">@Model.ShoppingList.Name</h1>
+            @if (Model.ShoppingList.IsArchived)
+            {
+                <span class="badge text-bg-secondary">Архив</span>
+            }
+        </div>
+        <p class="text-body-secondary mb-0">
             Группа:
             <a asp-controller="ShoppingGroups" asp-action="Details" asp-route-id="@Model.ShoppingList.ShoppingGroupId">@Model.ShoppingList.ShoppingGroup.Name</a>
         </p>
     </div>
-</div>
-
-<div class="card shadow-sm mb-4">
-    <div class="card-header bg-body">
-        <h2 class="h5 mb-0">Добавить товар</h2>
-    </div>
-    <div class="card-body">
-        <form asp-action="AddItem" method="post" class="row g-3" novalidate>
+    <div class="d-flex flex-wrap gap-2">
+        <a asp-action="Edit" asp-route-id="@Model.ShoppingList.Id" class="btn btn-outline-primary">Переименовать</a>
+        <form asp-action="ToggleArchive" asp-route-id="@Model.ShoppingList.Id" method="post">
             @Html.AntiForgeryToken()
-            <input asp-for="AddItemForm.ShoppingListId" type="hidden" />
-
-            <div class="col-md-5">
-                <label asp-for="AddItemForm.Name" class="form-label"></label>
-                <input asp-for="AddItemForm.Name" class="form-control" />
-                <span asp-validation-for="AddItemForm.Name" class="text-danger"></span>
-            </div>
-
-            <div class="col-md-3">
-                <label asp-for="AddItemForm.Quantity" class="form-label"></label>
-                <input asp-for="AddItemForm.Quantity" class="form-control" type="number" min="0.01" step="0.01" />
-                <span asp-validation-for="AddItemForm.Quantity" class="text-danger"></span>
-            </div>
-
-            <div class="col-md-3">
-                <label asp-for="AddItemForm.Unit" class="form-label"></label>
-                <select asp-for="AddItemForm.Unit" class="form-select" data-unit-select data-custom-unit-target="#addCustomUnit">
-                    <option value="">Не указано</option>
-                    @foreach (var unit in ShoppingItemFormViewModel.UnitOptions)
-                    {
-                        <option value="@unit">@unit</option>
-                    }
-                </select>
-                <span asp-validation-for="AddItemForm.Unit" class="text-danger"></span>
-            </div>
-
-            <div id="addCustomUnit" class="col-md-3 d-none">
-                <label asp-for="AddItemForm.CustomUnit" class="form-label"></label>
-                <input asp-for="AddItemForm.CustomUnit" class="form-control" placeholder="Например: коробка" />
-                <span asp-validation-for="AddItemForm.CustomUnit" class="text-danger"></span>
-            </div>
-
-            <div class="col-md-2 d-flex align-items-end">
-                <button type="submit" class="btn btn-primary w-100">Добавить</button>
-            </div>
+            <button type="submit" class="btn btn-outline-secondary">
+                @(Model.ShoppingList.IsArchived ? "Вернуть из архива" : "Архивировать")
+            </button>
+        </form>
+        <form asp-action="Delete" asp-route-id="@Model.ShoppingList.Id" method="post" onsubmit="return confirm('Удалить список покупок вместе со всеми товарами?');">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-outline-danger">Удалить список</button>
         </form>
     </div>
 </div>
+
+@if (Model.ShoppingList.IsArchived)
+{
+    <div class="alert alert-secondary shadow-sm">
+        Этот список находится в архиве. Товары доступны для просмотра, но добавление и редактирование отключены.
+    </div>
+}
+else
+{
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-body">
+            <h2 class="h5 mb-0">Добавить товар</h2>
+        </div>
+        <div class="card-body">
+            <form asp-action="AddItem" method="post" class="row g-3" novalidate>
+                @Html.AntiForgeryToken()
+                <input asp-for="AddItemForm.ShoppingListId" type="hidden" />
+
+                <div class="col-md-4">
+                    <label asp-for="AddItemForm.Name" class="form-label"></label>
+                    <input asp-for="AddItemForm.Name" class="form-control" />
+                    <span asp-validation-for="AddItemForm.Name" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-2">
+                    <label asp-for="AddItemForm.Quantity" class="form-label"></label>
+                    <input asp-for="AddItemForm.Quantity" class="form-control" type="number" min="0.01" step="0.01" />
+                    <span asp-validation-for="AddItemForm.Quantity" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-3">
+                    <label asp-for="AddItemForm.Unit" class="form-label"></label>
+                    <select asp-for="AddItemForm.Unit" class="form-select" data-unit-select data-custom-unit-target="#addCustomUnit">
+                        <option value="">Не указано</option>
+                        @foreach (var unit in ShoppingItemFormViewModel.UnitOptions)
+                        {
+                            <option value="@unit">@unit</option>
+                        }
+                    </select>
+                    <span asp-validation-for="AddItemForm.Unit" class="text-danger"></span>
+                </div>
+
+                <div id="addCustomUnit" class="col-md-3 d-none">
+                    <label asp-for="AddItemForm.CustomUnit" class="form-label"></label>
+                    <input asp-for="AddItemForm.CustomUnit" class="form-control" placeholder="Например: коробка" />
+                    <span asp-validation-for="AddItemForm.CustomUnit" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-3">
+                    <label asp-for="AddItemForm.Category" class="form-label"></label>
+                    <select asp-for="AddItemForm.Category" class="form-select">
+                        @foreach (var category in ShoppingItemFormViewModel.CategoryOptions)
+                        {
+                            <option value="@category">@category</option>
+                        }
+                    </select>
+                    <span asp-validation-for="AddItemForm.Category" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-7">
+                    <label asp-for="AddItemForm.Comment" class="form-label"></label>
+                    <input asp-for="AddItemForm.Comment" class="form-control" placeholder="Например: купить без сахара" />
+                    <span asp-validation-for="AddItemForm.Comment" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Добавить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
 
 <div class="d-flex flex-wrap gap-2 mb-3">
     <a asp-action="Details" asp-route-id="@Model.ShoppingList.Id" asp-route-filter="all" class="btn @(Model.Filter == ShoppingItemFilter.All ? "btn-primary" : "btn-outline-primary")">Все</a>
@@ -68,16 +113,17 @@
 
 @if (!Model.Items.Any())
 {
-    <div class="alert alert-info">По выбранному фильтру товаров нет.</div>
+    <div class="empty-state">По выбранному фильтру товаров нет.</div>
 }
 else
 {
-    <div class="table-responsive">
-        <table class="table table-hover align-middle">
+    <div class="table-responsive mb-4">
+        <table class="table table-hover align-middle mb-0">
             <thead>
                 <tr>
                     <th>Статус</th>
                     <th>Товар</th>
+                    <th>Категория</th>
                     <th>Количество</th>
                     <th>Добавил</th>
                     <th>Купил</th>
@@ -89,38 +135,59 @@ else
                 {
                     <tr class="@(item.IsPurchased ? "table-success" : string.Empty)">
                         <td>
-                            <form asp-action="TogglePurchased" asp-route-id="@item.Id" method="post">
-                                @Html.AntiForgeryToken()
-                                <button type="submit" class="btn btn-sm @(item.IsPurchased ? "btn-success" : "btn-outline-secondary")">
-                                    @(item.IsPurchased ? "Куплено" : "Отметить")
-                                </button>
-                            </form>
+                            @if (!Model.ShoppingList.IsArchived)
+                            {
+                                <form asp-action="TogglePurchased" asp-route-id="@item.Id" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm @(item.IsPurchased ? "btn-success" : "btn-outline-secondary")">
+                                        @(item.IsPurchased ? "Куплено" : "Отметить")
+                                    </button>
+                                </form>
+                            }
+                            else
+                            {
+                                <span class="badge @(item.IsPurchased ? "text-bg-success" : "text-bg-secondary")">@(item.IsPurchased ? "Куплено" : "Не куплено")</span>
+                            }
                         </td>
-                        <td class="fw-semibold">@item.Name</td>
+                        <td>
+                            <div class="fw-semibold">@item.Name</div>
+                            @if (!string.IsNullOrWhiteSpace(item.Comment))
+                            {
+                                <div class="small text-body-secondary">@item.Comment</div>
+                            }
+                        </td>
+                        <td><span class="badge text-bg-light border">@item.Category</span></td>
                         <td>@item.Quantity @item.Unit</td>
                         <td>
                             <div>@(item.CreatedByUser?.DisplayName ?? item.CreatedByUser?.Email ?? "Неизвестно")</div>
-                            <div class="small text-muted">@item.CreatedAtUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</div>
+                            <div class="small text-body-secondary">@item.CreatedAtUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</div>
                         </td>
                         <td>
                             @if (item.IsPurchased)
                             {
                                 <div>@(item.PurchasedByUser?.DisplayName ?? item.PurchasedByUser?.Email ?? "Неизвестно")</div>
-                                <div class="small text-muted">@(item.PurchasedAtUtc.HasValue ? item.PurchasedAtUtc.Value.ToLocalTime().ToString("dd.MM.yyyy HH:mm") : string.Empty)</div>
+                                <div class="small text-body-secondary">@(item.PurchasedAtUtc.HasValue ? item.PurchasedAtUtc.Value.ToLocalTime().ToString("dd.MM.yyyy HH:mm") : string.Empty)</div>
                             }
                             else
                             {
-                                <span class="text-muted">—</span>
+                                <span class="text-body-secondary">—</span>
                             }
                         </td>
                         <td class="text-end">
-                            <div class="d-inline-flex gap-2">
-                                <a asp-action="EditItem" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">Редактировать</a>
-                                <form asp-action="DeleteItem" asp-route-id="@item.Id" method="post" onsubmit="return confirm('Удалить товар?');">
-                                    @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">Удалить</button>
-                                </form>
-                            </div>
+                            @if (!Model.ShoppingList.IsArchived)
+                            {
+                                <div class="d-inline-flex gap-2">
+                                    <a asp-action="EditItem" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">Редактировать</a>
+                                    <form asp-action="DeleteItem" asp-route-id="@item.Id" method="post" onsubmit="return confirm('Удалить товар?');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Удалить</button>
+                                    </form>
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="text-body-secondary">Просмотр</span>
+                            }
                         </td>
                     </tr>
                 }
@@ -129,6 +196,59 @@ else
     </div>
 }
 
+<section class="app-card">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h4 mb-0">История изменений</h2>
+        <span class="badge text-bg-secondary">@Model.HistoryEntries.Count</span>
+    </div>
+
+    @if (!Model.HistoryEntries.Any())
+    {
+        <div class="empty-state">История действий пока пуста.</div>
+    }
+    else
+    {
+        <div class="list-group shadow-none">
+            @foreach (var history in Model.HistoryEntries)
+            {
+                <div class="list-group-item">
+                    <div class="d-flex flex-wrap justify-content-between gap-2">
+                        <div>
+                            <div class="fw-semibold">@TranslateAction(history.Action): @history.ShoppingItem.Name</div>
+                            <div class="small text-body-secondary">
+                                Пользователь: @(history.ApplicationUser?.DisplayName ?? history.ApplicationUser?.Email ?? "Неизвестно")
+                            </div>
+                        </div>
+                        <span class="small text-body-secondary">@history.CreatedAtUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</span>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(history.OldValue))
+                    {
+                        <div class="small mt-2"><strong>Было:</strong> @history.OldValue</div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(history.NewValue))
+                    {
+                        <div class="small"><strong>Стало:</strong> @history.NewValue</div>
+                    }
+                </div>
+            }
+        </div>
+    }
+</section>
+
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+}
+
+@functions {
+    private static string TranslateAction(string action)
+    {
+        return action switch
+        {
+            "Created" => "Товар добавлен",
+            "Updated" => "Товар изменён",
+            "Purchased" => "Товар отмечен как купленный",
+            "PurchaseCanceled" => "Отметка покупки отменена",
+            _ => action
+        };
+    }
 }

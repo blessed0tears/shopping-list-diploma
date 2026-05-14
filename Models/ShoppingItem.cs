@@ -12,6 +12,10 @@ public class ShoppingItem
 
     public string? Unit { get; set; }
 
+    public string Category { get; set; } = "Другое";
+
+    public string? Comment { get; set; }
+
     public bool IsPurchased { get; set; }
 
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;

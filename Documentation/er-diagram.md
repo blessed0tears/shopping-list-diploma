@@ -55,6 +55,8 @@ erDiagram
         string Name
         decimal Quantity
         string Unit
+        string Category
+        string Comment
         bool IsPurchased
         datetime CreatedAtUtc
         datetime PurchasedAtUtc
@@ -78,5 +80,6 @@ erDiagram
 - Пользователь может быть участником одной группы только один раз.
 - Список покупок всегда принадлежит одной группе.
 - Товар всегда принадлежит одному списку покупок.
+- Категория и комментарий товара хранятся в `SHOPPING_ITEM`.
 - Автор добавления товара и пользователь, отметивший товар купленным, хранятся ссылками на `APPLICATION_USER`.
 - История действий связана с товаром и пользователем, выполнившим действие.
