@@ -14,13 +14,8 @@
     </div>
 </div>
 
-@if (TempData["ErrorMessage"] is string errorMessage)
-{
-    <div class="alert alert-danger">@errorMessage</div>
-}
-
 <div class="card shadow-sm mb-4">
-    <div class="card-header bg-white">
+    <div class="card-header bg-body">
         <h2 class="h5 mb-0">Добавить товар</h2>
     </div>
     <div class="card-body">
@@ -42,12 +37,24 @@
 
             <div class="col-md-3">
                 <label asp-for="AddItemForm.Unit" class="form-label"></label>
-                <input asp-for="AddItemForm.Unit" class="form-control" placeholder="шт., кг, л" />
+                <select asp-for="AddItemForm.Unit" class="form-select" data-unit-select data-custom-unit-target="#addCustomUnit">
+                    <option value="">Не указано</option>
+                    @foreach (var unit in ShoppingItemFormViewModel.UnitOptions)
+                    {
+                        <option value="@unit">@unit</option>
+                    }
+                </select>
                 <span asp-validation-for="AddItemForm.Unit" class="text-danger"></span>
             </div>
 
-            <div class="col-md-1 d-flex align-items-end">
-                <button type="submit" class="btn btn-primary w-100">+</button>
+            <div id="addCustomUnit" class="col-md-3 d-none">
+                <label asp-for="AddItemForm.CustomUnit" class="form-label"></label>
+                <input asp-for="AddItemForm.CustomUnit" class="form-control" placeholder="Например: коробка" />
+                <span asp-validation-for="AddItemForm.CustomUnit" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">Добавить</button>
             </div>
         </form>
     </div>

@@ -2,8 +2,49 @@
     ViewData["Title"] = "О проекте";
 }
 
-<h1>@ViewData["Title"]</h1>
-<p>
-    Дипломная работа посвящена разработке информационной системы «Совместный список покупок».
-    На текущем этапе создана базовая структура проекта без реализации полной бизнес-логики.
-</p>
+<section class="app-card mb-4">
+    <span class="badge rounded-pill text-bg-primary mb-3">О системе</span>
+    <h1 class="fw-bold mb-3">Совместный список покупок</h1>
+    <p class="lead text-body-secondary mb-0">
+        Это веб-приложение помогает планировать покупки вместе: дома, в общежитии, с друзьями,
+        соседями или коллегами. Все участники видят актуальный список, могут добавлять товары и
+        отмечать, что уже куплено.
+    </p>
+</section>
+
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="app-card h-100">
+            <h2 class="h4 fw-bold mb-3">Для кого предназначено</h2>
+            <ul class="list-unstyled feature-list mb-0">
+                <li>Семьи, которые покупают продукты вместе.</li>
+                <li>Соседи и друзья, разделяющие общие бытовые покупки.</li>
+                <li>Студенты и жители общежитий.</li>
+                <li>Небольшие команды, которым нужен простой общий список.</li>
+            </ul>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="app-card h-100">
+            <h2 class="h4 fw-bold mb-3">Какие задачи решает</h2>
+            <ul class="list-unstyled feature-list mb-0">
+                <li>Собирает все покупки в одном месте.</li>
+                <li>Помогает не покупать лишнее и не забывать важное.</li>
+                <li>Показывает, кто добавил товар и кто отметил его купленным.</li>
+                <li>Упрощает совместное планирование и распределение покупок.</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<section class="app-card mt-4">
+    <h2 class="h4 fw-bold mb-3">Основные возможности</h2>
+    <div class="row g-3">
+        <div class="col-md-4"><div class="benefit-card h-100">Создание групп покупок</div></div>
+        <div class="col-md-4"><div class="benefit-card h-100">Добавление участников по email</div></div>
+        <div class="col-md-4"><div class="benefit-card h-100">Списки внутри групп</div></div>
+        <div class="col-md-4"><div class="benefit-card h-100">Добавление и редактирование товаров</div></div>
+        <div class="col-md-4"><div class="benefit-card h-100">Отметка товаров как купленных</div></div>
+        <div class="col-md-4"><div class="benefit-card h-100">Фильтры: все, купленные, некупленные</div></div>
+    </div>
+</section>

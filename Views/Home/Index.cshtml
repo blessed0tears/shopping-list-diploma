@@ -1,42 +1,110 @@
 @model HomeViewModel
+@using Microsoft.AspNetCore.Identity
+@inject SignInManager<ApplicationUser> SignInManager
 
 @{
     ViewData["Title"] = "Главная";
 }
 
-<section class="hero-section rounded-3 p-5 mb-4 bg-light">
-    <div class="container-fluid py-4">
-        <h1 class="display-5 fw-bold">@Model.Title</h1>
-        <p class="col-md-8 fs-4">@Model.Description</p>
-        <p class="text-muted mb-0">
-            Стартовая основа ASP.NET Core MVC приложения подготовлена для дальнейшей реализации бизнес-логики дипломной работы.
-        </p>
+<section class="hero-section app-card overflow-hidden mb-5">
+    <div class="row align-items-center g-4">
+        <div class="col-lg-7">
+            <span class="badge rounded-pill text-bg-primary mb-3">Покупки без хаоса</span>
+            <h1 class="display-4 fw-bold mb-3">Совместный список покупок</h1>
+            <p class="lead text-body-secondary mb-4">
+                Создавайте списки покупок вместе с семьёй, друзьями или соседями. Добавляйте товары,
+                отмечайте купленное и следите за изменениями в одном удобном месте.
+            </p>
+            <div class="d-flex flex-wrap gap-3">
+                <a asp-controller="ShoppingGroups" asp-action="Index" class="btn btn-primary btn-lg">Начать пользоваться</a>
+                @if (!SignInManager.IsSignedIn(User))
+                {
+                    <a asp-controller="Account" asp-action="Login" class="btn btn-outline-primary btn-lg">Войти</a>
+                    <a asp-controller="Account" asp-action="Register" class="btn btn-light btn-lg hero-secondary-button">Создать аккаунт</a>
+                }
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="hero-preview shadow-lg">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <div class="fw-semibold">Семейные покупки</div>
+                        <small class="text-body-secondary">Сегодня</small>
+                    </div>
+                    <span class="badge text-bg-success">3 куплено</span>
+                </div>
+                <div class="preview-item purchased">
+                    <span>Хлеб</span>
+                    <small>купила Анна</small>
+                </div>
+                <div class="preview-item">
+                    <span>Молоко</span>
+                    <small>2 бутылки</small>
+                </div>
+                <div class="preview-item">
+                    <span>Яблоки</span>
+                    <small>1 кг</small>
+                </div>
+            </div>
+        </div>
     </div>
 </section>
 
-<div class="row g-4">
-    <div class="col-md-4">
-        <div class="card h-100 shadow-sm">
-            <div class="card-body">
-                <h2 class="h5 card-title">ASP.NET Core MVC</h2>
-                <p class="card-text">Проект разделён на модели, контроллеры, представления и view model.</p>
+<section class="mb-5">
+    <div class="text-center mb-4">
+        <h2 class="fw-bold">Как это работает</h2>
+        <p class="text-body-secondary mb-0">Три простых шага для совместного планирования покупок.</p>
+    </div>
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="app-card h-100 text-center">
+                <div class="feature-icon mx-auto mb-3">1</div>
+                <h3 class="h5">Создайте группу</h3>
+                <p class="text-body-secondary mb-0">Объедините семью, соседей или друзей в одной группе покупок.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="app-card h-100 text-center">
+                <div class="feature-icon mx-auto mb-3">2</div>
+                <h3 class="h5">Добавляйте товары</h3>
+                <p class="text-body-secondary mb-0">Создавайте списки, указывайте количество и удобные единицы измерения.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="app-card h-100 text-center">
+                <div class="feature-icon mx-auto mb-3">3</div>
+                <h3 class="h5">Отмечайте купленное</h3>
+                <p class="text-body-secondary mb-0">Все участники видят, кто добавил товар и кто уже купил нужное.</p>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card h-100 shadow-sm">
-            <div class="card-body">
-                <h2 class="h5 card-title">Entity Framework Core</h2>
-                <p class="card-text">Подготовлен контекст базы данных для SQL Server и дальнейших миграций.</p>
+</section>
+
+<section class="mb-4">
+    <div class="row g-4 align-items-stretch">
+        <div class="col-lg-4">
+            <div class="app-card h-100">
+                <h2 class="h4 fw-bold mb-3">Почему это удобно</h2>
+                <p class="text-body-secondary mb-0">
+                    Списки всегда под рукой, изменения видны всем участникам, а покупки не дублируются.
+                </p>
+            </div>
+        </div>
+        <div class="col-lg-8">
+            <div class="row g-3">
+                <div class="col-sm-6">
+                    <div class="benefit-card h-100">👥 Совместный доступ к группам</div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="benefit-card h-100">✅ Быстрая отметка купленного</div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="benefit-card h-100">🔎 Фильтры по статусу товара</div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="benefit-card h-100">📝 Понятная история действий</div>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card h-100 shadow-sm">
-            <div class="card-body">
-                <h2 class="h5 card-title">ASP.NET Core Identity</h2>
-                <p class="card-text">Заложена основа для авторизации пользователей и совместной работы со списками.</p>
-            </div>
-        </div>
-    </div>
-</div>
+</section>

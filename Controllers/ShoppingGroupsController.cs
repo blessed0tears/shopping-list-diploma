@@ -71,6 +71,7 @@ public class ShoppingGroupsController : Controller
 
         _context.ShoppingGroups.Add(group);
         await _context.SaveChangesAsync();
+        TempData["SuccessMessage"] = "Группа создана.";
 
         return RedirectToAction(nameof(Details), new { id = group.Id });
     }

@@ -40,6 +40,26 @@ public class ShoppingItemFormViewModel
     [StringLength(50, ErrorMessage = "Единица измерения не должна превышать {1} символов.")]
     [Display(Name = "Единица измерения")]
     public string? Unit { get; set; }
+
+    [StringLength(50, ErrorMessage = "Своя единица измерения не должна превышать {1} символов.")]
+    [Display(Name = "Своя единица измерения")]
+    public string? CustomUnit { get; set; }
+
+    public static IReadOnlyList<string> UnitOptions { get; } = new[]
+    {
+        "шт.",
+        "кг",
+        "г",
+        "л",
+        "мл",
+        "пачка",
+        "бутылка",
+        "упаковка",
+        "банка",
+        OtherUnitValue
+    };
+
+    public const string OtherUnitValue = "другое";
 }
 
 public static class ShoppingItemFilter

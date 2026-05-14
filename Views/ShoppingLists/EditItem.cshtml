@@ -28,8 +28,20 @@
 
             <div class="mb-3">
                 <label asp-for="Unit" class="form-label"></label>
-                <input asp-for="Unit" class="form-control" />
+                <select asp-for="Unit" class="form-select" data-unit-select data-custom-unit-target="#editCustomUnit">
+                    <option value="">Не указано</option>
+                    @foreach (var unit in ShoppingItemFormViewModel.UnitOptions)
+                    {
+                        <option value="@unit">@unit</option>
+                    }
+                </select>
                 <span asp-validation-for="Unit" class="text-danger"></span>
+            </div>
+
+            <div id="editCustomUnit" class="mb-3 d-none">
+                <label asp-for="CustomUnit" class="form-label"></label>
+                <input asp-for="CustomUnit" class="form-control" placeholder="Например: коробка" />
+                <span asp-validation-for="CustomUnit" class="text-danger"></span>
             </div>
 
             <div class="d-flex gap-2">

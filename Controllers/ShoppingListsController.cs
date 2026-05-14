@@ -78,6 +78,7 @@ public class ShoppingListsController : Controller
 
         _context.ShoppingLists.Add(shoppingList);
         await _context.SaveChangesAsync();
+        TempData["SuccessMessage"] = "Список создан.";
 
         return RedirectToAction(nameof(Details), new { id = shoppingList.Id });
     }
@@ -131,6 +132,7 @@ public class ShoppingListsController : Controller
             return NotFound();
         }
 
+        ValidateUnit(model);
         if (!ModelState.IsValid)
         {
             TempData["ErrorMessage"] = "Проверьте данные товара.";
@@ -138,12 +140,13 @@ public class ShoppingListsController : Controller
         }
 
         var userId = GetCurrentUserId();
+        var unit = ResolveUnit(model);
         var item = new ShoppingItem
         {
             ShoppingListId = model.ShoppingListId,
             Name = model.Name,
             Quantity = model.Quantity,
-            Unit = model.Unit,
+            Unit = unit,
             CreatedByUserId = userId,
             HistoryEntries =
             {
@@ -158,6 +161,7 @@ public class ShoppingListsController : Controller
 
         _context.ShoppingItems.Add(item);
         await _context.SaveChangesAsync();
+        TempData["SuccessMessage"] = "Товар добавлен.";
 
         return RedirectToAction(nameof(Details), new { id = model.ShoppingListId });
     }
@@ -174,13 +178,7 @@ public class ShoppingListsController : Controller
             return NotFound();
         }
 
-        return View(new ShoppingItemFormViewModel
-        {
-            ShoppingListId = item.ShoppingListId,
-            Name = item.Name,
-            Quantity = item.Quantity,
-            Unit = item.Unit
-        });
+        return View(CreateItemFormViewModel(item));
     }
 
     [HttpPost]
@@ -195,6 +193,7 @@ public class ShoppingListsController : Controller
             return NotFound();
         }
 
+        ValidateUnit(model);
         if (!ModelState.IsValid)
         {
             model.ShoppingListId = item.ShoppingListId;
@@ -202,11 +201,12 @@ public class ShoppingListsController : Controller
         }
 
         var userId = GetCurrentUserId();
+        var unit = ResolveUnit(model);
         var oldValue = $"{item.Name} ({item.Quantity} {item.Unit})";
 
         item.Name = model.Name;
         item.Quantity = model.Quantity;
-        item.Unit = model.Unit;
+        item.Unit = unit;
         item.HistoryEntries.Add(new ItemHistory
         {
             ApplicationUserId = userId,
@@ -216,6 +216,7 @@ public class ShoppingListsController : Controller
         });
 
         await _context.SaveChangesAsync();
+        TempData["SuccessMessage"] = "Изменения сохранены.";
 
         return RedirectToAction(nameof(Details), new { id = item.ShoppingListId });
     }
@@ -235,6 +236,7 @@ public class ShoppingListsController : Controller
         var listId = item.ShoppingListId;
         _context.ShoppingItems.Remove(item);
         await _context.SaveChangesAsync();
+        TempData["SuccessMessage"] = "Товар удалён.";
 
         return RedirectToAction(nameof(Details), new { id = listId });
     }
@@ -263,8 +265,53 @@ public class ShoppingListsController : Controller
         });
 
         await _context.SaveChangesAsync();
+        TempData["SuccessMessage"] = item.IsPurchased
+            ? "Товар отмечен как купленный."
+            : "Отметка покупки снята.";
 
         return RedirectToAction(nameof(Details), new { id = item.ShoppingListId });
+    }
+
+    private static ShoppingItemFormViewModel CreateItemFormViewModel(ShoppingItem item)
+    {
+        var isKnownUnit = string.IsNullOrWhiteSpace(item.Unit)
+            || ShoppingItemFormViewModel.UnitOptions.Contains(item.Unit);
+
+        return new ShoppingItemFormViewModel
+        {
+            ShoppingListId = item.ShoppingListId,
+            Name = item.Name,
+            Quantity = item.Quantity,
+            Unit = isKnownUnit ? item.Unit : ShoppingItemFormViewModel.OtherUnitValue,
+            CustomUnit = isKnownUnit ? null : item.Unit
+        };
+    }
+
+    private void ValidateUnit(ShoppingItemFormViewModel model)
+    {
+        if (model.Unit == ShoppingItemFormViewModel.OtherUnitValue
+            && string.IsNullOrWhiteSpace(model.CustomUnit))
+        {
+            ModelState.AddModelError(nameof(model.CustomUnit), "Введите свою единицу измерения или выберите вариант из списка.");
+        }
+    }
+
+    private static string? ResolveUnit(ShoppingItemFormViewModel model)
+    {
+        var selectedUnit = model.Unit?.Trim();
+        if (string.IsNullOrWhiteSpace(selectedUnit))
+        {
+            return null;
+        }
+
+        if (selectedUnit == ShoppingItemFormViewModel.OtherUnitValue)
+        {
+            return string.IsNullOrWhiteSpace(model.CustomUnit)
+                ? null
+                : model.CustomUnit.Trim();
+        }
+
+        return selectedUnit;
     }
 
     private IQueryable<ShoppingGroup> GetUserGroups()
