@@ -8,11 +8,19 @@ public class GroupMember
 
     public string ApplicationUserId { get; set; } = string.Empty;
 
-    public string Role { get; set; } = "Member";
+    public string Role { get; set; } = GroupMemberRole.Member;
 
     public DateTime JoinedAtUtc { get; set; } = DateTime.UtcNow;
 
     public ShoppingGroup ShoppingGroup { get; set; } = null!;
 
     public ApplicationUser ApplicationUser { get; set; } = null!;
+}
+
+
+public static class GroupMemberRole
+{
+    public const string Owner = "Owner";
+
+    public const string Member = "Member";
 }

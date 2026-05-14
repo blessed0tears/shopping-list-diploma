@@ -84,7 +84,7 @@
                             <div class="fw-semibold">@(member.ApplicationUser.DisplayName ?? member.ApplicationUser.Email)</div>
                             <div class="small text-body-secondary">@member.ApplicationUser.Email — @RoleTitle(member.Role)</div>
                         </div>
-                        @if (Model.IsCurrentUserOwner && member.Role != "Owner")
+                        @if (Model.IsCurrentUserOwner && member.Role != GroupMemberRole.Owner)
                         {
                             <form asp-action="RemoveMember" asp-route-id="@Model.Group.Id" asp-route-memberId="@member.Id" method="post" onsubmit="return confirm('Удалить участника из группы?');">
                                 @Html.AntiForgeryToken()
@@ -130,6 +130,6 @@
 @functions {
     private static string RoleTitle(string role)
     {
-        return role == "Owner" ? "Владелец" : "Участник";
+        return role == GroupMemberRole.Owner ? "Владелец" : "Участник";
     }
 }

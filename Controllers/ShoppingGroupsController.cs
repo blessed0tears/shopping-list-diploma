@@ -64,7 +64,7 @@ public class ShoppingGroupsController : Controller
                 new GroupMember
                 {
                     ApplicationUserId = userId,
-                    Role = "Owner"
+                    Role = GroupMemberRole.Owner
                 }
             }
         };
@@ -198,7 +198,7 @@ public class ShoppingGroupsController : Controller
         group.Members.Add(new GroupMember
         {
             ApplicationUserId = user.Id,
-            Role = "Member"
+            Role = GroupMemberRole.Member
         });
 
         await _context.SaveChangesAsync();
@@ -226,7 +226,7 @@ public class ShoppingGroupsController : Controller
             return NotFound();
         }
 
-        if (member.ApplicationUserId == group.OwnerId || member.Role == "Owner")
+        if (member.ApplicationUserId == group.OwnerId || member.Role == GroupMemberRole.Owner)
         {
             TempData["ErrorMessage"] = "Нельзя удалить владельца группы.";
             return RedirectToAction(nameof(Details), new { id });
@@ -264,7 +264,7 @@ public class ShoppingGroupsController : Controller
 
         return _context.ShoppingGroups
             .Where(group => group.OwnerId == userId
-                || group.Members.Any(member => member.ApplicationUserId == userId && member.Role == "Owner"));
+                || group.Members.Any(member => member.ApplicationUserId == userId && member.Role == GroupMemberRole.Owner));
     }
 
     private string GetCurrentUserId()
@@ -276,6 +276,6 @@ public class ShoppingGroupsController : Controller
     private static bool IsOwner(ShoppingGroup group, string userId)
     {
         return group.OwnerId == userId
-            || group.Members.Any(member => member.ApplicationUserId == userId && member.Role == "Owner");
+            || group.Members.Any(member => member.ApplicationUserId == userId && member.Role == GroupMemberRole.Owner);
     }
 }

@@ -287,6 +287,7 @@ public class ShoppingListsController : Controller
 
         var userId = GetCurrentUserId();
         var unit = ResolveUnit(model);
+        var assignedUserText = await GetAssignedUserDisplayAsync(model.AssignedToUserId);
         var item = new ShoppingItem
         {
             ShoppingListId = model.ShoppingListId,
@@ -305,7 +306,7 @@ public class ShoppingListsController : Controller
                 {
                     ApplicationUserId = userId,
                     Action = "Created",
-                    NewValue = FormatItemValue(model.Name, model.Quantity, unit, model.Category, model.Comment, model.Priority, model.EstimatedPrice)
+                    NewValue = FormatItemValue(model.Name, model.Quantity, unit, model.Category, model.Comment, model.Priority, model.EstimatedPrice, assignedUserText)
                 }
             }
         };
@@ -323,6 +324,7 @@ public class ShoppingListsController : Controller
         var item = await GetUserItems()
             .AsNoTracking()
             .Include(item => item.ShoppingList)
+            .Include(item => item.AssignedToUser)
             .FirstOrDefaultAsync(existingItem => existingItem.Id == id);
 
         if (item is null)
@@ -348,6 +350,7 @@ public class ShoppingListsController : Controller
     {
         var item = await GetUserItems()
             .Include(item => item.ShoppingList)
+            .Include(item => item.AssignedToUser)
             .FirstOrDefaultAsync(existingItem => existingItem.Id == id);
 
         if (item is null)
@@ -373,7 +376,9 @@ public class ShoppingListsController : Controller
 
         var userId = GetCurrentUserId();
         var unit = ResolveUnit(model);
-        var oldValue = FormatItemValue(item.Name, item.Quantity, item.Unit, item.Category, item.Comment, item.Priority, item.EstimatedPrice);
+        var oldAssignedUserText = FormatAssignedUser(item.AssignedToUser);
+        var newAssignedUserText = await GetAssignedUserDisplayAsync(model.AssignedToUserId);
+        var oldValue = FormatItemValue(item.Name, item.Quantity, item.Unit, item.Category, item.Comment, item.Priority, item.EstimatedPrice, oldAssignedUserText);
 
         item.Name = model.Name;
         item.Quantity = model.Quantity;
@@ -388,7 +393,7 @@ public class ShoppingListsController : Controller
             ApplicationUserId = userId,
             Action = "Updated",
             OldValue = oldValue,
-            NewValue = FormatItemValue(item.Name, item.Quantity, item.Unit, item.Category, item.Comment, item.Priority, item.EstimatedPrice)
+            NewValue = FormatItemValue(item.Name, item.Quantity, item.Unit, item.Category, item.Comment, item.Priority, item.EstimatedPrice, newAssignedUserText)
         });
 
         await _context.SaveChangesAsync();
@@ -570,13 +575,35 @@ public class ShoppingListsController : Controller
         };
     }
 
-    private static string FormatItemValue(string name, decimal quantity, string? unit, string category, string? comment, string priority, decimal? estimatedPrice)
+    private static string FormatItemValue(string name, decimal quantity, string? unit, string category, string? comment, string priority, decimal? estimatedPrice, string assignedUserText)
     {
         var unitText = string.IsNullOrWhiteSpace(unit) ? "без ед. изм." : unit;
         var commentText = string.IsNullOrWhiteSpace(comment) ? "без комментария" : comment;
         var priceText = estimatedPrice.HasValue ? $"{estimatedPrice.Value:N2} ₽" : "без цены";
 
-        return $"{name}; количество: {quantity} {unitText}; категория: {category}; приоритет: {priority}; цена: {priceText}; комментарий: {commentText}";
+        return $"{name}; количество: {quantity} {unitText}; категория: {category}; приоритет: {priority}; цена: {priceText}; ответственный: {assignedUserText}; комментарий: {commentText}";
+    }
+
+    private async Task<string> GetAssignedUserDisplayAsync(string? assignedUserId)
+    {
+        var normalizedAssignedUserId = NormalizeAssignedUserId(assignedUserId);
+        if (normalizedAssignedUserId is null)
+        {
+            return "не назначен";
+        }
+
+        var user = await _context.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(existingUser => existingUser.Id == normalizedAssignedUserId);
+
+        return FormatAssignedUser(user);
+    }
+
+    private static string FormatAssignedUser(ApplicationUser? user)
+    {
+        return user is null
+            ? "не назначен"
+            : user.DisplayName ?? user.Email ?? "не назначен";
     }
 
     private async Task<List<GroupMember>> GetGroupMembersAsync(int shoppingGroupId)

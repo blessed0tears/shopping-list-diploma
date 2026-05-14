@@ -15,6 +15,7 @@
 }
 
 html {
+  height: 100%;
   font-size: 14px;
 }
 
@@ -26,6 +27,7 @@ html {
 
 body {
   min-height: 100vh;
+  margin: 0;
   background:
     radial-gradient(circle at top left, rgba(13, 110, 253, 0.12), transparent 34rem),
     var(--app-bg);
@@ -33,15 +35,18 @@ body {
 
 .app-body {
   display: flex;
+  min-height: 100vh;
   flex-direction: column;
 }
 
 .app-container {
+  display: flex;
   flex: 1 0 auto;
   width: 100%;
 }
 
 .app-main {
+  width: 100%;
   min-height: 0;
 }
 
