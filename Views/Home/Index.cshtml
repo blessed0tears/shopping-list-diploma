@@ -1,0 +1,42 @@
+@model HomeViewModel
+
+@{
+    ViewData["Title"] = "Главная";
+}
+
+<section class="hero-section rounded-3 p-5 mb-4 bg-light">
+    <div class="container-fluid py-4">
+        <h1 class="display-5 fw-bold">@Model.Title</h1>
+        <p class="col-md-8 fs-4">@Model.Description</p>
+        <p class="text-muted mb-0">
+            Стартовая основа ASP.NET Core MVC приложения подготовлена для дальнейшей реализации бизнес-логики дипломной работы.
+        </p>
+    </div>
+</section>
+
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body">
+                <h2 class="h5 card-title">ASP.NET Core MVC</h2>
+                <p class="card-text">Проект разделён на модели, контроллеры, представления и view model.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body">
+                <h2 class="h5 card-title">Entity Framework Core</h2>
+                <p class="card-text">Подготовлен контекст базы данных для SQL Server и дальнейших миграций.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body">
+                <h2 class="h5 card-title">ASP.NET Core Identity</h2>
+                <p class="card-text">Заложена основа для авторизации пользователей и совместной работы со списками.</p>
+            </div>
+        </div>
+    </div>
+</div>

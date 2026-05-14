@@ -1,0 +1,30 @@
+@model IEnumerable<ShoppingList>
+
+@{
+    ViewData["Title"] = "Списки";
+}
+
+<h1 class="mb-1">Мои списки покупок</h1>
+<p class="text-muted">Показаны списки только из тех групп, где вы являетесь участником.</p>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">
+        У вас пока нет списков. Откройте группу и создайте список покупок.
+    </div>
+}
+else
+{
+    <div class="list-group shadow-sm">
+        @foreach (var shoppingList in Model)
+        {
+            <a asp-action="Details" asp-route-id="@shoppingList.Id" class="list-group-item list-group-item-action">
+                <div class="d-flex w-100 justify-content-between">
+                    <h2 class="h5 mb-1">@shoppingList.Name</h2>
+                    <small>@shoppingList.CreatedAtUtc.ToLocalTime().ToString("dd.MM.yyyy")</small>
+                </div>
+                <p class="mb-0 text-muted">Группа: @shoppingList.ShoppingGroup.Name</p>
+            </a>
+        }
+    </div>
+}

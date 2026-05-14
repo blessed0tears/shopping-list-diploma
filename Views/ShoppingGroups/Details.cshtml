@@ -1,0 +1,89 @@
+@model ShoppingGroupDetailsViewModel
+
+@{
+    ViewData["Title"] = Model.Group.Name;
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="mb-1">@Model.Group.Name</h1>
+        <p class="text-muted mb-0">@(Model.Group.Description ?? "Группа покупок без описания")</p>
+    </div>
+    <a asp-controller="ShoppingLists" asp-action="Create" asp-route-groupId="@Model.Group.Id" class="btn btn-primary">Создать список</a>
+</div>
+
+@if (TempData["SuccessMessage"] is string successMessage)
+{
+    <div class="alert alert-success">@successMessage</div>
+}
+
+@if (TempData["ErrorMessage"] is string errorMessage)
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h2 class="h5 mb-0">Списки покупок</h2>
+            </div>
+            <div class="card-body">
+                @if (!Model.ShoppingLists.Any())
+                {
+                    <p class="text-muted mb-0">В группе пока нет списков покупок.</p>
+                }
+                else
+                {
+                    <div class="list-group">
+                        @foreach (var shoppingList in Model.ShoppingLists)
+                        {
+                            <a asp-controller="ShoppingLists" asp-action="Details" asp-route-id="@shoppingList.Id" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                <span>@shoppingList.Name</span>
+                                <span class="badge text-bg-secondary">Открыть</span>
+                            </a>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white">
+                <h2 class="h5 mb-0">Участники</h2>
+            </div>
+            <ul class="list-group list-group-flush">
+                @foreach (var member in Model.Members)
+                {
+                    <li class="list-group-item">
+                        <div class="fw-semibold">@(member.ApplicationUser.DisplayName ?? member.ApplicationUser.Email)</div>
+                        <div class="small text-muted">@member.ApplicationUser.Email — @member.Role</div>
+                    </li>
+                }
+            </ul>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h2 class="h5 mb-0">Добавить участника</h2>
+            </div>
+            <div class="card-body">
+                <form asp-action="AddMember" asp-route-id="@Model.Group.Id" method="post" novalidate>
+                    @Html.AntiForgeryToken()
+                    <div class="mb-3">
+                        <label asp-for="AddMemberForm.Email" class="form-label"></label>
+                        <input asp-for="AddMemberForm.Email" name="Email" class="form-control" />
+                        <span class="text-danger" data-valmsg-for="Email" data-valmsg-replace="true"></span>
+                    </div>
+                    <button type="submit" class="btn btn-outline-primary w-100">Добавить по email</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
