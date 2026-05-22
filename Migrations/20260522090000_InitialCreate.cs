@@ -68,7 +68,7 @@ public partial class InitialCreate : Migration
                     column: x => x.RoleId,
                     principalTable: "AspNetRoles",
                     principalColumn: "Id",
-                    onDelete: ReferentialAction.Cascade);
+                    onDelete: ReferentialAction.Restrict);
             });
 
         migrationBuilder.CreateTable(
@@ -89,7 +89,7 @@ public partial class InitialCreate : Migration
                     column: x => x.UserId,
                     principalTable: "AspNetUsers",
                     principalColumn: "Id",
-                    onDelete: ReferentialAction.Cascade);
+                    onDelete: ReferentialAction.NoAction);
             });
 
         migrationBuilder.CreateTable(
@@ -175,7 +175,7 @@ public partial class InitialCreate : Migration
                     column: x => x.OwnerId,
                     principalTable: "AspNetUsers",
                     principalColumn: "Id",
-                    onDelete: ReferentialAction.SetNull);
+                    onDelete: ReferentialAction.NoAction);
             });
 
         migrationBuilder.CreateTable(
@@ -288,7 +288,7 @@ public partial class InitialCreate : Migration
                     column: x => x.ApplicationUserId,
                     principalTable: "AspNetUsers",
                     principalColumn: "Id",
-                    onDelete: ReferentialAction.SetNull);
+                    onDelete: ReferentialAction.NoAction);
                 table.ForeignKey(
                     name: "FK_ItemHistories_ShoppingItems_ShoppingItemId",
                     column: x => x.ShoppingItemId,

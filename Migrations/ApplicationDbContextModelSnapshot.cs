@@ -293,10 +293,10 @@ partial class ApplicationDbContextModelSnapshot : ModelSnapshot
 
         modelBuilder.Entity("ShoppingListDiploma.Models.Notification", b =>
         {
-            b.HasOne("ShoppingListDiploma.Models.GroupInvitation", "RelatedInvitation").WithMany("Notifications").HasForeignKey("RelatedInvitationId").OnDelete(DeleteBehavior.SetNull);
-            b.HasOne("ShoppingListDiploma.Models.ShoppingGroup", "RelatedGroup").WithMany().HasForeignKey("RelatedGroupId").OnDelete(DeleteBehavior.SetNull);
-            b.HasOne("ShoppingListDiploma.Models.ShoppingItem", "RelatedItem").WithMany().HasForeignKey("RelatedItemId").OnDelete(DeleteBehavior.SetNull);
-            b.HasOne("ShoppingListDiploma.Models.ShoppingList", "RelatedList").WithMany().HasForeignKey("RelatedListId").OnDelete(DeleteBehavior.SetNull);
+            b.HasOne("ShoppingListDiploma.Models.GroupInvitation", "RelatedInvitation").WithMany("Notifications").HasForeignKey("RelatedInvitationId").OnDelete(DeleteBehavior.NoAction);
+            b.HasOne("ShoppingListDiploma.Models.ShoppingGroup", "RelatedGroup").WithMany().HasForeignKey("RelatedGroupId").OnDelete(DeleteBehavior.NoAction);
+            b.HasOne("ShoppingListDiploma.Models.ShoppingItem", "RelatedItem").WithMany().HasForeignKey("RelatedItemId").OnDelete(DeleteBehavior.NoAction);
+            b.HasOne("ShoppingListDiploma.Models.ShoppingList", "RelatedList").WithMany().HasForeignKey("RelatedListId").OnDelete(DeleteBehavior.NoAction);
             b.HasOne("ShoppingListDiploma.Models.ApplicationUser", "User").WithMany("Notifications").HasForeignKey("UserId").OnDelete(DeleteBehavior.Cascade).IsRequired();
             b.Navigation("RelatedGroup");
             b.Navigation("RelatedInvitation");
