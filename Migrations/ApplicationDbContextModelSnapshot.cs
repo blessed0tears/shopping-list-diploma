@@ -25,7 +25,7 @@ partial class ApplicationDbContextModelSnapshot : ModelSnapshot
         BuildShoppingListModel(modelBuilder);
     }
 
-    internal static void BuildShoppingListModel(ModelBuilder modelBuilder)
+    public static void BuildShoppingListModel(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
         {
