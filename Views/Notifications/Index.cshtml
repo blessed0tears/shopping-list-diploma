@@ -1,0 +1,64 @@
+@model NotificationsIndexViewModel
+
+@{
+    ViewData["Title"] = "Уведомления";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="mb-0">Уведомления</h1>
+    <form asp-action="MarkAllRead" method="post">
+        @Html.AntiForgeryToken()
+        <button type="submit" class="btn btn-outline-primary">Отметить все как прочитанные</button>
+    </form>
+</div>
+
+@if (!Model.Notifications.Any())
+{
+    <div class="empty-state">У вас пока нет уведомлений.</div>
+}
+else
+{
+    <div class="list-group">
+        @foreach (var notification in Model.Notifications)
+        {
+            <div class="list-group-item">
+                <div class="d-flex justify-content-between gap-2 mb-2">
+                    <div>
+                        <div class="fw-semibold">@notification.Title</div>
+                        <div class="small text-body-secondary">@notification.CreatedAtUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</div>
+                    </div>
+                    <span class="badge @(notification.IsRead ? "text-bg-secondary" : "text-bg-primary")">@(notification.IsRead ? "Прочитано" : "Не прочитано")</span>
+                </div>
+                <p class="mb-2">@notification.Message</p>
+
+                @if (notification.RelatedInvitationId.HasValue && notification.RelatedInvitation is not null && notification.RelatedInvitation.Status == GroupInvitationStatus.Pending)
+                {
+                    <div class="d-flex gap-2 mb-2">
+                        <form asp-controller="ShoppingGroups" asp-action="AcceptInvitation" asp-route-id="@notification.RelatedInvitationId.Value" method="post">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-sm btn-success">Принять</button>
+                        </form>
+                        <form asp-controller="ShoppingGroups" asp-action="DeclineInvitation" asp-route-id="@notification.RelatedInvitationId.Value" method="post">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Отклонить</button>
+                        </form>
+                    </div>
+                }
+
+                <div class="d-flex gap-2">
+                    @if (!notification.IsRead)
+                    {
+                        <form asp-action="MarkRead" asp-route-id="@notification.Id" method="post">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-sm btn-outline-primary">Отметить прочитанным</button>
+                        </form>
+                    }
+                    <form asp-action="Delete" asp-route-id="@notification.Id" method="post" onsubmit="return confirm('Удалить уведомление?');">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Удалить</button>
+                    </form>
+                </div>
+            </div>
+        }
+    </div>
+}

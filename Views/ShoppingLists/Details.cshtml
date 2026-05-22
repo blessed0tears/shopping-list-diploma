@@ -1,0 +1,362 @@
+@model ShoppingListDetailsViewModel
+
+@{
+    ViewData["Title"] = Model.ShoppingList.Name;
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+    <div>
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+            <h1 class="mb-0">@Model.ShoppingList.Name</h1>
+            @if (Model.ShoppingList.IsArchived)
+            {
+                <span class="badge text-bg-secondary">Архив</span>
+            }
+        </div>
+        <p class="text-body-secondary mb-0">
+            Группа:
+            <a asp-controller="ShoppingGroups" asp-action="Details" asp-route-id="@Model.ShoppingList.ShoppingGroupId">@Model.ShoppingList.ShoppingGroup.Name</a>
+        </p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <a asp-action="Edit" asp-route-id="@Model.ShoppingList.Id" class="btn btn-outline-primary">Переименовать</a>
+        <form asp-action="ToggleArchive" asp-route-id="@Model.ShoppingList.Id" method="post">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-outline-secondary">
+                @(Model.ShoppingList.IsArchived ? "Вернуть из архива" : "Архивировать")
+            </button>
+        </form>
+        <form asp-action="Delete" asp-route-id="@Model.ShoppingList.Id" method="post" onsubmit="return confirm('Удалить список покупок вместе со всеми товарами?');">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-outline-danger">Удалить список</button>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="benefit-card h-100">Общая примерная сумма: <strong>@FormatPrice(Model.TotalEstimatedPrice)</strong></div>
+    </div>
+    <div class="col-md-4">
+        <div class="benefit-card h-100">Куплено на сумму: <strong>@FormatPrice(Model.PurchasedEstimatedPrice)</strong></div>
+    </div>
+    <div class="col-md-4">
+        <div class="benefit-card h-100">Осталось купить: <strong>@FormatPrice(Model.ActiveEstimatedPrice)</strong></div>
+    </div>
+</div>
+
+@if (Model.ShoppingList.IsArchived)
+{
+    <div class="alert alert-secondary shadow-sm">
+        Этот список находится в архиве. Товары доступны для просмотра, но добавление и редактирование отключены.
+    </div>
+}
+else
+{
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-body">
+            <h2 class="h5 mb-0">Добавить товар</h2>
+        </div>
+        <div class="card-body">
+            <form asp-action="AddItem" method="post" class="row g-3" novalidate>
+                @Html.AntiForgeryToken()
+                <input asp-for="AddItemForm.ShoppingListId" type="hidden" />
+
+                <div class="col-md-4">
+                    <label asp-for="AddItemForm.Name" class="form-label"></label>
+                    <input asp-for="AddItemForm.Name" class="form-control" />
+                    <span asp-validation-for="AddItemForm.Name" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-2">
+                    <label asp-for="AddItemForm.Quantity" class="form-label"></label>
+                    <input asp-for="AddItemForm.Quantity" class="form-control" type="number" min="0.01" step="0.01" />
+                    <span asp-validation-for="AddItemForm.Quantity" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-3">
+                    <label asp-for="AddItemForm.Unit" class="form-label"></label>
+                    <select asp-for="AddItemForm.Unit" class="form-select" data-unit-select data-custom-unit-target="#addCustomUnit">
+                        <option value="">Не указано</option>
+                        @foreach (var unit in ShoppingItemFormViewModel.UnitOptions)
+                        {
+                            <option value="@unit">@unit</option>
+                        }
+                    </select>
+                    <span asp-validation-for="AddItemForm.Unit" class="text-danger"></span>
+                </div>
+
+                <div id="addCustomUnit" class="col-md-3 d-none">
+                    <label asp-for="AddItemForm.CustomUnit" class="form-label"></label>
+                    <input asp-for="AddItemForm.CustomUnit" class="form-control" placeholder="Например: коробка" />
+                    <span asp-validation-for="AddItemForm.CustomUnit" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-3">
+                    <label asp-for="AddItemForm.Category" class="form-label"></label>
+                    <select asp-for="AddItemForm.Category" class="form-select">
+                        @foreach (var category in ShoppingItemFormViewModel.CategoryOptions)
+                        {
+                            <option value="@category">@category</option>
+                        }
+                    </select>
+                    <span asp-validation-for="AddItemForm.Category" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-3">
+                    <label asp-for="AddItemForm.Priority" class="form-label"></label>
+                    <select asp-for="AddItemForm.Priority" class="form-select">
+                        @foreach (var priority in ShoppingItemFormViewModel.PriorityOptions)
+                        {
+                            <option value="@priority">@priority</option>
+                        }
+                    </select>
+                    <span asp-validation-for="AddItemForm.Priority" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-3">
+                    <label asp-for="AddItemForm.EstimatedPrice" class="form-label"></label>
+                    <input asp-for="AddItemForm.EstimatedPrice" class="form-control" type="number" min="0.01" step="0.01" placeholder="Например: 250" />
+                    <span asp-validation-for="AddItemForm.EstimatedPrice" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-3">
+                    <label asp-for="AddItemForm.AssignedToUserId" class="form-label"></label>
+                    <select asp-for="AddItemForm.AssignedToUserId" class="form-select">
+                        <option value="">Не назначен</option>
+                        @foreach (var member in Model.GroupMembers)
+                        {
+                            <option value="@member.ApplicationUserId">@(member.ApplicationUser.DisplayName ?? member.ApplicationUser.Email)</option>
+                        }
+                    </select>
+                    <span asp-validation-for="AddItemForm.AssignedToUserId" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-9">
+                    <label asp-for="AddItemForm.Comment" class="form-label"></label>
+                    <input asp-for="AddItemForm.Comment" class="form-control" placeholder="Например: купить без сахара" />
+                    <span asp-validation-for="AddItemForm.Comment" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Добавить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
+<form asp-action="Details" method="get" class="app-card mb-4">
+    <input type="hidden" name="id" value="@Model.ShoppingList.Id" />
+    <div class="row g-3 align-items-end">
+        <div class="col-md-3">
+            <label class="form-label" for="search">Поиск по названию</label>
+            <input id="search" name="search" value="@Model.SearchQuery" class="form-control" placeholder="Например: молоко" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label" for="filter">Статус</label>
+            <select id="filter" name="filter" class="form-select">
+                <option value="all" selected="@(Model.Filter == ShoppingItemFilter.All)">Все</option>
+                <option value="active" selected="@(Model.Filter == ShoppingItemFilter.Active)">Некупленные</option>
+                <option value="purchased" selected="@(Model.Filter == ShoppingItemFilter.Purchased)">Купленные</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label" for="category">Категория</label>
+            <select id="category" name="category" class="form-select">
+                <option value="">Все категории</option>
+                @foreach (var category in ShoppingItemFormViewModel.CategoryOptions)
+                {
+                    <option value="@category" selected="@(Model.CategoryFilter == category)">@category</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label" for="sort">Сортировка</label>
+            <select id="sort" name="sort" class="form-select">
+                <option value="created_desc" selected="@(Model.SortOrder == ShoppingItemSortOrder.CreatedDesc)">Сначала новые</option>
+                <option value="created_asc" selected="@(Model.SortOrder == ShoppingItemSortOrder.CreatedAsc)">Сначала старые</option>
+                <option value="name_asc" selected="@(Model.SortOrder == ShoppingItemSortOrder.NameAsc)">Название А-Я</option>
+                <option value="name_desc" selected="@(Model.SortOrder == ShoppingItemSortOrder.NameDesc)">Название Я-А</option>
+            </select>
+        </div>
+        <div class="col-md-2 d-grid gap-2">
+            <button type="submit" class="btn btn-primary">Применить</button>
+            <a asp-action="Details" asp-route-id="@Model.ShoppingList.Id" class="btn btn-outline-secondary">Сбросить</a>
+        </div>
+    </div>
+</form>
+
+@if (!Model.Items.Any())
+{
+    @if (Model.TotalItemCount == 0)
+    {
+        <div class="empty-state">В этом списке пока нет товаров. Добавьте первый товар через форму выше.</div>
+    }
+    else if (Model.HasActiveSearchOrFilters)
+    {
+        <div class="empty-state">Поиск и фильтры не нашли товаров. Измените параметры или сбросьте фильтрацию.</div>
+    }
+    else
+    {
+        <div class="empty-state">По выбранному статусу товаров нет.</div>
+    }
+}
+else
+{
+    <div class="table-responsive mb-4">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Статус</th>
+                    <th>Товар</th>
+                    <th>Категория</th>
+                    <th>Приоритет</th>
+                    <th>Количество</th>
+                    <th>Цена</th>
+                    <th>Ответственный</th>
+                    <th>Добавил</th>
+                    <th>Купил</th>
+                    <th class="text-end">Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.Items)
+                {
+                    <tr class="@(item.IsPurchased ? "table-success" : string.Empty)">
+                        <td>
+                            @if (!Model.ShoppingList.IsArchived)
+                            {
+                                <form asp-action="TogglePurchased" asp-route-id="@item.Id" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm @(item.IsPurchased ? "btn-success" : "btn-outline-secondary")">
+                                        @(item.IsPurchased ? "Куплено" : "Отметить")
+                                    </button>
+                                </form>
+                            }
+                            else
+                            {
+                                <span class="badge @(item.IsPurchased ? "text-bg-success" : "text-bg-secondary")">@(item.IsPurchased ? "Куплено" : "Не куплено")</span>
+                            }
+                        </td>
+                        <td>
+                            <div class="fw-semibold">@item.Name</div>
+                            @if (!string.IsNullOrWhiteSpace(item.Comment))
+                            {
+                                <div class="small text-body-secondary">@item.Comment</div>
+                            }
+                        </td>
+                        <td><span class="badge text-bg-light border">@item.Category</span></td>
+                        <td><span class="badge @PriorityBadgeClass(item.Priority)">@item.Priority</span></td>
+                        <td>@item.Quantity @item.Unit</td>
+                        <td>@(item.EstimatedPrice.HasValue ? FormatPrice(item.EstimatedPrice.Value) : "—")</td>
+                        <td>@(item.AssignedToUser?.DisplayName ?? item.AssignedToUser?.Email ?? "Не назначен")</td>
+                        <td>
+                            <div>@(item.CreatedByUser?.DisplayName ?? item.CreatedByUser?.Email ?? "Неизвестно")</div>
+                            <div class="small text-body-secondary">@item.CreatedAtUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</div>
+                        </td>
+                        <td>
+                            @if (item.IsPurchased)
+                            {
+                                <div>@(item.PurchasedByUser?.DisplayName ?? item.PurchasedByUser?.Email ?? "Неизвестно")</div>
+                                <div class="small text-body-secondary">@(item.PurchasedAtUtc.HasValue ? item.PurchasedAtUtc.Value.ToLocalTime().ToString("dd.MM.yyyy HH:mm") : string.Empty)</div>
+                            }
+                            else
+                            {
+                                <span class="text-body-secondary">—</span>
+                            }
+                        </td>
+                        <td class="text-end">
+                            @if (!Model.ShoppingList.IsArchived)
+                            {
+                                <div class="d-inline-flex gap-2">
+                                    <a asp-action="EditItem" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">Редактировать</a>
+                                    <form asp-action="DeleteItem" asp-route-id="@item.Id" method="post" onsubmit="return confirm('Удалить товар?');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Удалить</button>
+                                    </form>
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="text-body-secondary">Просмотр</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+<section class="app-card">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h4 mb-0">История изменений</h2>
+        <span class="badge text-bg-secondary">@Model.HistoryEntries.Count</span>
+    </div>
+
+    @if (!Model.HistoryEntries.Any())
+    {
+        <div class="empty-state">История действий пока пуста.</div>
+    }
+    else
+    {
+        <div class="list-group shadow-none">
+            @foreach (var history in Model.HistoryEntries)
+            {
+                <div class="list-group-item">
+                    <div class="d-flex flex-wrap justify-content-between gap-2">
+                        <div>
+                            <div class="fw-semibold">@TranslateAction(history.Action): @history.ShoppingItem.Name</div>
+                            <div class="small text-body-secondary">
+                                Пользователь: @(history.ApplicationUser?.DisplayName ?? history.ApplicationUser?.Email ?? "Неизвестно")
+                            </div>
+                        </div>
+                        <span class="small text-body-secondary">@history.CreatedAtUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</span>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(history.OldValue))
+                    {
+                        <div class="small mt-2"><strong>Было:</strong> @history.OldValue</div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(history.NewValue))
+                    {
+                        <div class="small"><strong>Стало:</strong> @history.NewValue</div>
+                    }
+                </div>
+            }
+        </div>
+    }
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+
+@functions {
+    private static string TranslateAction(string action)
+    {
+        return action switch
+        {
+            "Created" => "Товар добавлен",
+            "Updated" => "Товар изменён",
+            "Purchased" => "Товар отмечен как купленный",
+            "PurchaseCanceled" => "Отметка покупки отменена",
+            _ => action
+        };
+    }
+
+    private static string FormatPrice(decimal price)
+    {
+        return $"{price:N2} ₽";
+    }
+
+    private static string PriorityBadgeClass(string priority)
+    {
+        return priority switch
+        {
+            ShoppingItemPriority.High => "text-bg-danger",
+            ShoppingItemPriority.Low => "text-bg-secondary",
+            _ => "text-bg-primary"
+        };
+    }
+}

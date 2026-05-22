@@ -1,0 +1,116 @@
+@model HomeViewModel
+@using Microsoft.AspNetCore.Identity
+@inject SignInManager<ApplicationUser> SignInManager
+
+@{
+    ViewData["Title"] = "Главная";
+}
+
+@if (!Model.IsAuthenticated)
+{
+<section class="hero-section app-card overflow-hidden mb-5">
+    <div class="row align-items-center g-4">
+        <div class="col-lg-7">
+            <span class="badge rounded-pill text-bg-primary mb-3">Покупки без хаоса</span>
+            <h1 class="display-4 fw-bold mb-3">Совместный список покупок</h1>
+            <p class="lead text-body-secondary mb-4">Создавайте списки покупок вместе с семьёй и друзьями.</p>
+            <div class="d-flex flex-wrap gap-3">
+                <a asp-controller="Account" asp-action="Login" class="btn btn-outline-primary btn-lg">Войти</a>
+                <a asp-controller="Account" asp-action="Register" class="btn btn-primary btn-lg">Зарегистрироваться</a>
+            </div>
+        </div>
+    </div>
+</section>
+}
+else
+{
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0">Здравствуйте, @Model.UserEmail</h1>
+        <div class="d-flex gap-2">
+            <a asp-controller="ShoppingGroups" asp-action="Create" class="btn btn-primary">Создать группу</a>
+            <a asp-controller="ShoppingLists" asp-action="Index" class="btn btn-outline-primary">Открыть списки</a>
+            <a asp-controller="Notifications" asp-action="Index" class="btn btn-outline-secondary">Открыть уведомления</a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-body"><h2 class="h5 mb-0">Мои активные списки</h2></div>
+                <div class="card-body">
+                    @if (!Model.ActiveLists.Any()) { <div class="empty-state">Активных списков пока нет.</div> }
+                    else {
+                        <div class="list-group shadow-none">
+                            @foreach (var list in Model.ActiveLists) {
+                                <a asp-controller="ShoppingLists" asp-action="Details" asp-route-id="@list.Id" class="list-group-item list-group-item-action">
+                                    <div class="fw-semibold">@list.Name</div>
+                                    <div class="small text-body-secondary">Группа: @list.ShoppingGroup.Name · Товаров: @list.Items.Count · Куплено: @list.Items.Count(i => i.IsPurchased)</div>
+                                </a>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-body"><h2 class="h5 mb-0">Назначено мне</h2></div>
+                <div class="card-body">
+                    @if (!Model.AssignedItems.Any()) { <div class="empty-state">Назначенных товаров нет.</div> }
+                    else {
+                        <div class="list-group shadow-none">
+                            @foreach (var item in Model.AssignedItems) {
+                                <a asp-controller="ShoppingLists" asp-action="Details" asp-route-id="@item.ShoppingListId" class="list-group-item list-group-item-action">
+                                    <div class="fw-semibold">@item.Name</div>
+                                    <div class="small text-body-secondary">@item.ShoppingList.Name · @item.Category · @item.Priority · @(item.EstimatedPrice?.ToString("N2") ?? "—") ₽</div>
+                                </a>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-body"><h2 class="h5 mb-0">Приглашения</h2></div>
+                <div class="card-body">
+                    @if (!Model.PendingInvitations.Any()) { <div class="empty-state">Активных приглашений нет.</div> }
+                    else {
+                        @foreach (var invitation in Model.PendingInvitations) {
+                            <div class="border rounded p-3 mb-2">
+                                <div class="fw-semibold">@invitation.ShoppingGroup.Name</div>
+                                <div class="small text-body-secondary mb-2">Пригласил: @(invitation.InvitedByUser.DisplayName ?? invitation.InvitedByUser.Email)</div>
+                                <div class="d-flex gap-2">
+                                    <form asp-controller="ShoppingGroups" asp-action="AcceptInvitation" asp-route-id="@invitation.Id" method="post">@Html.AntiForgeryToken()<button class="btn btn-sm btn-success">Принять</button></form>
+                                    <form asp-controller="ShoppingGroups" asp-action="DeclineInvitation" asp-route-id="@invitation.Id" method="post">@Html.AntiForgeryToken()<button class="btn btn-sm btn-outline-danger">Отклонить</button></form>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-body d-flex justify-content-between"><h2 class="h5 mb-0">Последние уведомления</h2><a asp-controller="Notifications" asp-action="Index">Все уведомления</a></div>
+                <div class="card-body">
+                    @if (!Model.LatestNotifications.Any()) { <div class="empty-state">Уведомлений пока нет.</div> }
+                    else {
+                        <div class="list-group shadow-none">
+                            @foreach (var notification in Model.LatestNotifications) {
+                                <div class="list-group-item">
+                                    <div class="fw-semibold">@notification.Title</div>
+                                    <div>@notification.Message</div>
+                                    <div class="small text-body-secondary">@notification.CreatedAtUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
