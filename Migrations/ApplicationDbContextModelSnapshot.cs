@@ -117,6 +117,23 @@ partial class ApplicationDbContextModelSnapshot : ModelSnapshot
             b.ToTable("AspNetUsers", (string)null);
         });
 
+        modelBuilder.Entity("ShoppingListDiploma.Models.GroupInvitation", b =>
+        {
+            b.Property<int>("Id").ValueGeneratedOnAdd().HasColumnType("int");
+            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+            b.Property<DateTime>("CreatedAtUtc").HasColumnType("datetime2");
+            b.Property<string>("InvitedByUserId").IsRequired().HasColumnType("nvarchar(450)");
+            b.Property<string>("InvitedUserId").IsRequired().HasColumnType("nvarchar(450)");
+            b.Property<DateTime?>("RespondedAtUtc").HasColumnType("datetime2");
+            b.Property<int>("ShoppingGroupId").HasColumnType("int");
+            b.Property<string>("Status").IsRequired().HasMaxLength(50).HasColumnType("nvarchar(50)");
+            b.HasKey("Id");
+            b.HasIndex("InvitedByUserId");
+            b.HasIndex("InvitedUserId");
+            b.HasIndex("ShoppingGroupId", "InvitedUserId", "Status");
+            b.ToTable("GroupInvitations");
+        });
+
         modelBuilder.Entity("ShoppingListDiploma.Models.GroupMember", b =>
         {
             b.Property<int>("Id").ValueGeneratedOnAdd().HasColumnType("int");
@@ -145,6 +162,29 @@ partial class ApplicationDbContextModelSnapshot : ModelSnapshot
             b.HasIndex("ApplicationUserId");
             b.HasIndex("ShoppingItemId");
             b.ToTable("ItemHistories");
+        });
+
+        modelBuilder.Entity("ShoppingListDiploma.Models.Notification", b =>
+        {
+            b.Property<int>("Id").ValueGeneratedOnAdd().HasColumnType("int");
+            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+            b.Property<DateTime>("CreatedAtUtc").HasColumnType("datetime2");
+            b.Property<bool>("IsRead").HasColumnType("bit");
+            b.Property<string>("Message").IsRequired().HasMaxLength(1000).HasColumnType("nvarchar(1000)");
+            b.Property<int?>("RelatedGroupId").HasColumnType("int");
+            b.Property<int?>("RelatedInvitationId").HasColumnType("int");
+            b.Property<int?>("RelatedItemId").HasColumnType("int");
+            b.Property<int?>("RelatedListId").HasColumnType("int");
+            b.Property<string>("Title").IsRequired().HasMaxLength(200).HasColumnType("nvarchar(200)");
+            b.Property<string>("Type").IsRequired().HasMaxLength(100).HasColumnType("nvarchar(100)");
+            b.Property<string>("UserId").IsRequired().HasColumnType("nvarchar(450)");
+            b.HasKey("Id");
+            b.HasIndex("RelatedGroupId");
+            b.HasIndex("RelatedInvitationId");
+            b.HasIndex("RelatedItemId");
+            b.HasIndex("RelatedListId");
+            b.HasIndex("UserId");
+            b.ToTable("Notifications");
         });
 
         modelBuilder.Entity("ShoppingListDiploma.Models.ShoppingGroup", b =>
@@ -233,12 +273,36 @@ partial class ApplicationDbContextModelSnapshot : ModelSnapshot
             b.Navigation("ShoppingGroup");
         });
 
+        modelBuilder.Entity("ShoppingListDiploma.Models.GroupInvitation", b =>
+        {
+            b.HasOne("ShoppingListDiploma.Models.ApplicationUser", "InvitedByUser").WithMany("SentGroupInvitations").HasForeignKey("InvitedByUserId").OnDelete(DeleteBehavior.Restrict).IsRequired();
+            b.HasOne("ShoppingListDiploma.Models.ApplicationUser", "InvitedUser").WithMany("ReceivedGroupInvitations").HasForeignKey("InvitedUserId").OnDelete(DeleteBehavior.Restrict).IsRequired();
+            b.HasOne("ShoppingListDiploma.Models.ShoppingGroup", "ShoppingGroup").WithMany().HasForeignKey("ShoppingGroupId").OnDelete(DeleteBehavior.Cascade).IsRequired();
+            b.Navigation("InvitedByUser");
+            b.Navigation("InvitedUser");
+            b.Navigation("ShoppingGroup");
+        });
+
         modelBuilder.Entity("ShoppingListDiploma.Models.ItemHistory", b =>
         {
             b.HasOne("ShoppingListDiploma.Models.ApplicationUser", "ApplicationUser").WithMany("ItemHistories").HasForeignKey("ApplicationUserId").OnDelete(DeleteBehavior.SetNull);
             b.HasOne("ShoppingListDiploma.Models.ShoppingItem", "ShoppingItem").WithMany("HistoryEntries").HasForeignKey("ShoppingItemId").OnDelete(DeleteBehavior.Cascade).IsRequired();
             b.Navigation("ApplicationUser");
             b.Navigation("ShoppingItem");
+        });
+
+        modelBuilder.Entity("ShoppingListDiploma.Models.Notification", b =>
+        {
+            b.HasOne("ShoppingListDiploma.Models.GroupInvitation", "RelatedInvitation").WithMany("Notifications").HasForeignKey("RelatedInvitationId").OnDelete(DeleteBehavior.SetNull);
+            b.HasOne("ShoppingListDiploma.Models.ShoppingGroup", "RelatedGroup").WithMany().HasForeignKey("RelatedGroupId").OnDelete(DeleteBehavior.SetNull);
+            b.HasOne("ShoppingListDiploma.Models.ShoppingItem", "RelatedItem").WithMany().HasForeignKey("RelatedItemId").OnDelete(DeleteBehavior.SetNull);
+            b.HasOne("ShoppingListDiploma.Models.ShoppingList", "RelatedList").WithMany().HasForeignKey("RelatedListId").OnDelete(DeleteBehavior.SetNull);
+            b.HasOne("ShoppingListDiploma.Models.ApplicationUser", "User").WithMany("Notifications").HasForeignKey("UserId").OnDelete(DeleteBehavior.Cascade).IsRequired();
+            b.Navigation("RelatedGroup");
+            b.Navigation("RelatedInvitation");
+            b.Navigation("RelatedItem");
+            b.Navigation("RelatedList");
+            b.Navigation("User");
         });
 
         modelBuilder.Entity("ShoppingListDiploma.Models.ShoppingGroup", b =>
@@ -269,6 +333,14 @@ partial class ApplicationDbContextModelSnapshot : ModelSnapshot
         {
             b.Navigation("GroupMemberships");
             b.Navigation("ItemHistories");
+            b.Navigation("Notifications");
+            b.Navigation("ReceivedGroupInvitations");
+            b.Navigation("SentGroupInvitations");
+        });
+
+        modelBuilder.Entity("ShoppingListDiploma.Models.GroupInvitation", b =>
+        {
+            b.Navigation("Notifications");
         });
 
         modelBuilder.Entity("ShoppingListDiploma.Models.ShoppingGroup", b =>
