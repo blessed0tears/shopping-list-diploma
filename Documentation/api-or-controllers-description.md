@@ -112,3 +112,8 @@ Where(item => item.ShoppingList.ShoppingGroup.Members.Any(member => member.Appli
 | `/ShoppingLists` | Списки пользователя. |
 | `/ShoppingLists/Create?groupId={id}` | Создание списка в группе. |
 | `/ShoppingLists/Details/{id}` | Просмотр списка и товаров. |
+
+
+## Уведомления и приглашения
+
+В проект добавлены внутренние уведомления и приглашения в группы с принятием/отклонением через интерфейс.

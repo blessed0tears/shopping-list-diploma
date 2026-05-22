@@ -45,5 +45,7 @@ public class ShoppingGroupDetailsViewModel
 
     public AddGroupMemberViewModel AddMemberForm { get; set; } = new();
 
+    public IReadOnlyCollection<GroupInvitation> Invitations { get; set; } = Array.Empty<GroupInvitation>();
+
     public bool IsCurrentUserOwner { get; set; }
 }

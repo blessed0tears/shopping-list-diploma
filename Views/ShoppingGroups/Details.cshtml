@@ -98,9 +98,9 @@
 
         @if (Model.IsCurrentUserOwner)
         {
-            <div class="card shadow-sm">
+            <div class="card shadow-sm mb-4">
                 <div class="card-header bg-body">
-                    <h2 class="h5 mb-0">Добавить участника</h2>
+                    <h2 class="h5 mb-0">Пригласить участника</h2>
                 </div>
                 <div class="card-body">
                     <form asp-action="AddMember" asp-route-id="@Model.Group.Id" method="post" novalidate>
@@ -110,15 +110,43 @@
                             <input asp-for="AddMemberForm.Email" name="Email" class="form-control" />
                             <span class="text-danger" data-valmsg-for="Email" data-valmsg-replace="true"></span>
                         </div>
-                        <button type="submit" class="btn btn-outline-primary w-100">Добавить по email</button>
+                        <button type="submit" class="btn btn-outline-primary w-100">Отправить приглашение</button>
                     </form>
                 </div>
             </div>
         }
         else
         {
-            <div class="empty-state">Управление участниками доступно только владельцу группы.</div>
+            <div class="empty-state mb-4">Управление участниками доступно только владельцу группы.</div>
         }
+
+        <div class="card shadow-sm">
+            <div class="card-header bg-body d-flex justify-content-between align-items-center">
+                <h2 class="h5 mb-0">Приглашения в группу</h2>
+                <span class="badge text-bg-secondary">@Model.Invitations.Count</span>
+            </div>
+            <div class="card-body">
+                @if (!Model.Invitations.Any())
+                {
+                    <div class="empty-state">Приглашений пока нет.</div>
+                }
+                else
+                {
+                    <div class="list-group shadow-none">
+                        @foreach (var invitation in Model.Invitations)
+                        {
+                            <div class="list-group-item d-flex justify-content-between align-items-center gap-3">
+                                <div>
+                                    <div class="fw-semibold">@(invitation.InvitedUser.DisplayName ?? invitation.InvitedUser.Email)</div>
+                                    <div class="small text-body-secondary">Пригласил: @(invitation.InvitedByUser.DisplayName ?? invitation.InvitedByUser.Email)</div>
+                                </div>
+                                <span class="badge @InvitationBadge(invitation.Status)">@InvitationStatus(invitation.Status)</span>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
     </div>
 </div>
 
@@ -126,10 +154,29 @@
     <partial name="_ValidationScriptsPartial" />
 }
 
-
 @functions {
     private static string RoleTitle(string role)
     {
         return role == GroupMemberRole.Owner ? "Владелец" : "Участник";
+    }
+
+    private static string InvitationStatus(string status)
+    {
+        return status switch
+        {
+            GroupInvitationStatus.Accepted => "Принято",
+            GroupInvitationStatus.Declined => "Отклонено",
+            _ => "Ожидает ответа"
+        };
+    }
+
+    private static string InvitationBadge(string status)
+    {
+        return status switch
+        {
+            GroupInvitationStatus.Accepted => "text-bg-success",
+            GroupInvitationStatus.Declined => "text-bg-danger",
+            _ => "text-bg-warning"
+        };
     }
 }

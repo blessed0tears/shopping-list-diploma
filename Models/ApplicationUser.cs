@@ -11,4 +11,10 @@ public class ApplicationUser : IdentityUser
     public ICollection<GroupMember> GroupMemberships { get; set; } = new List<GroupMember>();
 
     public ICollection<ItemHistory> ItemHistories { get; set; } = new List<ItemHistory>();
+
+    public ICollection<GroupInvitation> SentGroupInvitations { get; set; } = new List<GroupInvitation>();
+
+    public ICollection<GroupInvitation> ReceivedGroupInvitations { get; set; } = new List<GroupInvitation>();
+
+    public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 }

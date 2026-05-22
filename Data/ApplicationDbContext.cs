@@ -21,6 +21,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
     public DbSet<ItemHistory> ItemHistories => Set<ItemHistory>();
 
+    public DbSet<GroupInvitation> GroupInvitations => Set<GroupInvitation>();
+
+    public DbSet<Notification> Notifications => Set<Notification>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -122,6 +126,71 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.HasOne(item => item.AssignedToUser)
                 .WithMany()
                 .HasForeignKey(item => item.AssignedToUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+
+        builder.Entity<GroupInvitation>(entity =>
+        {
+            entity.Property(invitation => invitation.Status)
+                .HasMaxLength(50)
+                .IsRequired();
+
+            entity.HasIndex(invitation => new { invitation.ShoppingGroupId, invitation.InvitedUserId, invitation.Status });
+
+            entity.HasOne(invitation => invitation.ShoppingGroup)
+                .WithMany()
+                .HasForeignKey(invitation => invitation.ShoppingGroupId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(invitation => invitation.InvitedUser)
+                .WithMany(user => user.ReceivedGroupInvitations)
+                .HasForeignKey(invitation => invitation.InvitedUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(invitation => invitation.InvitedByUser)
+                .WithMany(user => user.SentGroupInvitations)
+                .HasForeignKey(invitation => invitation.InvitedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<Notification>(entity =>
+        {
+            entity.Property(notification => notification.Title)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            entity.Property(notification => notification.Message)
+                .HasMaxLength(1000)
+                .IsRequired();
+
+            entity.Property(notification => notification.Type)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.HasOne(notification => notification.User)
+                .WithMany(user => user.Notifications)
+                .HasForeignKey(notification => notification.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(notification => notification.RelatedGroup)
+                .WithMany()
+                .HasForeignKey(notification => notification.RelatedGroupId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(notification => notification.RelatedList)
+                .WithMany()
+                .HasForeignKey(notification => notification.RelatedListId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(notification => notification.RelatedItem)
+                .WithMany()
+                .HasForeignKey(notification => notification.RelatedItemId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(notification => notification.RelatedInvitation)
+                .WithMany(invitation => invitation.Notifications)
+                .HasForeignKey(notification => notification.RelatedInvitationId)
                 .OnDelete(DeleteBehavior.SetNull);
         });
 

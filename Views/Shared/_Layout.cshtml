@@ -1,3 +1,6 @@
+@using System.Security.Claims
+@using Microsoft.EntityFrameworkCore
+@inject ShoppingListDiploma.Data.ApplicationDbContext DbContext
 @using Microsoft.AspNetCore.Identity
 @inject SignInManager<ApplicationUser> SignInManager
 
@@ -44,6 +47,17 @@
                         <li class="nav-item">
                             <a class="nav-link" asp-area="" asp-controller="ShoppingLists" asp-action="Index">Списки</a>
                         </li>
+                        @if (SignInManager.IsSignedIn(User))
+                        {
+                            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                            var unreadCount = string.IsNullOrWhiteSpace(currentUserId)
+                                ? 0
+                                : await DbContext.Notifications.CountAsync(item => item.UserId == currentUserId && !item.IsRead);
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Notifications" asp-action="Index">Уведомления (@unreadCount)</a>
+                            </li>
+                        }
+
                     </ul>
                     <ul class="navbar-nav align-items-lg-center gap-lg-2">
                         <li class="nav-item">

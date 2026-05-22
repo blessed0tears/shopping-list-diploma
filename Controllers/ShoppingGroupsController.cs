@@ -107,7 +107,14 @@ public class ShoppingGroupsController : Controller
             Members = group.Members.OrderBy(member => member.ApplicationUser.Email).ToList(),
             ActiveShoppingLists = activeLists,
             ArchivedShoppingLists = archivedLists,
-            IsCurrentUserOwner = isOwner
+            IsCurrentUserOwner = isOwner,
+            Invitations = await _context.GroupInvitations
+                .AsNoTracking()
+                .Include(invitation => invitation.InvitedUser)
+                .Include(invitation => invitation.InvitedByUser)
+                .Where(invitation => invitation.ShoppingGroupId == group.Id)
+                .OrderByDescending(invitation => invitation.CreatedAtUtc)
+                .ToListAsync()
         });
     }
 
@@ -195,16 +202,125 @@ public class ShoppingGroupsController : Controller
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        group.Members.Add(new GroupMember
+        var hasPendingInvitation = await _context.GroupInvitations
+            .AnyAsync(invitation => invitation.ShoppingGroupId == id
+                && invitation.InvitedUserId == user.Id
+                && invitation.Status == GroupInvitationStatus.Pending);
+        if (hasPendingInvitation)
         {
-            ApplicationUserId = user.Id,
-            Role = GroupMemberRole.Member
+            TempData["ErrorMessage"] = "У пользователя уже есть активное приглашение в эту группу.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        var invitation = new GroupInvitation
+        {
+            ShoppingGroupId = id,
+            InvitedUserId = user.Id,
+            InvitedByUserId = GetCurrentUserId(),
+            Status = GroupInvitationStatus.Pending
+        };
+        _context.GroupInvitations.Add(invitation);
+        await _context.SaveChangesAsync();
+
+        _context.Notifications.Add(new Notification
+        {
+            UserId = user.Id,
+            Title = "Приглашение в группу",
+            Message = $"Вас пригласили в группу «{group.Name}».",
+            Type = NotificationType.GroupInvitation,
+            RelatedGroupId = group.Id,
+            RelatedInvitationId = invitation.Id
         });
 
         await _context.SaveChangesAsync();
-        TempData["SuccessMessage"] = "Участник добавлен.";
+        TempData["SuccessMessage"] = "Приглашение отправлено.";
 
         return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AcceptInvitation(int id)
+    {
+        var userId = GetCurrentUserId();
+        var invitation = await _context.GroupInvitations
+            .Include(item => item.ShoppingGroup)
+            .Include(item => item.InvitedByUser)
+            .FirstOrDefaultAsync(item => item.Id == id && item.InvitedUserId == userId);
+        if (invitation is null)
+        {
+            return NotFound();
+        }
+
+        if (invitation.Status != GroupInvitationStatus.Pending)
+        {
+            TempData["ErrorMessage"] = "Приглашение уже обработано.";
+            return RedirectToAction("Index", "Notifications");
+        }
+
+        var alreadyMember = await _context.GroupMembers.AnyAsync(member => member.ShoppingGroupId == invitation.ShoppingGroupId && member.ApplicationUserId == userId);
+        if (!alreadyMember)
+        {
+            _context.GroupMembers.Add(new GroupMember
+            {
+                ShoppingGroupId = invitation.ShoppingGroupId,
+                ApplicationUserId = userId,
+                Role = GroupMemberRole.Member
+            });
+        }
+
+        invitation.Status = GroupInvitationStatus.Accepted;
+        invitation.RespondedAtUtc = DateTime.UtcNow;
+
+        var currentUser = await _userManager.GetUserAsync(User);
+        _context.Notifications.Add(new Notification
+        {
+            UserId = invitation.InvitedByUserId,
+            Title = "Ответ на приглашение",
+            Message = $"Пользователь {currentUser?.Email ?? "пользователь"} принял приглашение в группу «{invitation.ShoppingGroup.Name}».",
+            Type = NotificationType.InvitationResponse,
+            RelatedGroupId = invitation.ShoppingGroupId,
+            RelatedInvitationId = invitation.Id
+        });
+
+        await _context.SaveChangesAsync();
+        return RedirectToAction("Index", "Notifications");
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeclineInvitation(int id)
+    {
+        var userId = GetCurrentUserId();
+        var invitation = await _context.GroupInvitations
+            .Include(item => item.ShoppingGroup)
+            .FirstOrDefaultAsync(item => item.Id == id && item.InvitedUserId == userId);
+        if (invitation is null)
+        {
+            return NotFound();
+        }
+
+        if (invitation.Status != GroupInvitationStatus.Pending)
+        {
+            TempData["ErrorMessage"] = "Приглашение уже обработано.";
+            return RedirectToAction("Index", "Notifications");
+        }
+
+        invitation.Status = GroupInvitationStatus.Declined;
+        invitation.RespondedAtUtc = DateTime.UtcNow;
+        var currentUser = await _userManager.GetUserAsync(User);
+        _context.Notifications.Add(new Notification
+        {
+            UserId = invitation.InvitedByUserId,
+            Title = "Ответ на приглашение",
+            Message = $"Пользователь {currentUser?.Email ?? "пользователь"} отклонил приглашение в группу «{invitation.ShoppingGroup.Name}».",
+            Type = NotificationType.InvitationResponse,
+            RelatedGroupId = invitation.ShoppingGroupId,
+            RelatedInvitationId = invitation.Id
+        });
+
+        await _context.SaveChangesAsync();
+        return RedirectToAction("Index", "Notifications");
     }
 
     [HttpPost]
