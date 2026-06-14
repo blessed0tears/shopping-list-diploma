@@ -24,6 +24,4 @@ Global
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
-EndProject("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ShoppingListDiploma.Tests", "ShoppingListDiploma.Tests\ShoppingListDiploma.Tests.csproj", "{A8B83B18-3A2B-4C92-9EC5-D7622EFCD7BB}"
-EndProject
-Global
+EndGlobal
