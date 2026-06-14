@@ -15,7 +15,7 @@ public class CreateShoppingListViewModel
     public int ShoppingGroupId { get; set; }
 
     [Required(ErrorMessage = "Введите название списка.")]
-    [StringLength(150, ErrorMessage = "Название списка не должно превышать {1} символов.")]
+    [StringLength(150, ErrorMessage = "Название списка не должно превышать {1} символов. Сократите название и попробуйте снова.")]
     [Display(Name = "Название списка")]
     public string Name { get; set; } = string.Empty;
 }
@@ -27,7 +27,7 @@ public class EditShoppingListViewModel
     public int ShoppingGroupId { get; set; }
 
     [Required(ErrorMessage = "Введите название списка.")]
-    [StringLength(150, ErrorMessage = "Название списка не должно превышать {1} символов.")]
+    [StringLength(150, ErrorMessage = "Название списка не должно превышать {1} символов. Сократите название и попробуйте снова.")]
     [Display(Name = "Название списка")]
     public string Name { get; set; } = string.Empty;
 
@@ -73,11 +73,11 @@ public class ShoppingItemFormViewModel
     public int ShoppingListId { get; set; }
 
     [Required(ErrorMessage = "Введите название товара.")]
-    [StringLength(200, ErrorMessage = "Название товара не должно превышать {1} символов.")]
+    [StringLength(200, ErrorMessage = "Название товара не должно превышать {1} символов. Сократите название и попробуйте снова.")]
     [Display(Name = "Название товара")]
     public string Name { get; set; } = string.Empty;
 
-    [Range(0.01, 999999, ErrorMessage = "Количество должно быть больше 0.")]
+    [Range(0.01, 999999, ErrorMessage = "Укажите количество больше 0.")]
     [Display(Name = "Количество")]
     public decimal Quantity { get; set; } = 1;
 
@@ -103,7 +103,7 @@ public class ShoppingItemFormViewModel
     [Display(Name = "Приоритет")]
     public string Priority { get; set; } = ShoppingItemPriority.Normal;
 
-    [Range(0.01, 9999999, ErrorMessage = "Цена должна быть больше 0.")]
+    [Range(0.01, 9999999, ErrorMessage = "Укажите цену больше 0 или оставьте поле пустым.")]
     [Display(Name = "Примерная цена")]
     public decimal? EstimatedPrice { get; set; }
 

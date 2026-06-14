@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using ShoppingListDiploma.Data;
 using ShoppingListDiploma.Models;
 using ShoppingListDiploma.ViewModels;
+using ShoppingListDiploma.Services;
 
 namespace ShoppingListDiploma.Controllers;
 
@@ -12,15 +13,17 @@ namespace ShoppingListDiploma.Controllers;
 public class ShoppingListsController : Controller
 {
     private readonly ApplicationDbContext _context;
+    private readonly IShoppingListService _shoppingListService;
 
-    public ShoppingListsController(ApplicationDbContext context)
+    public ShoppingListsController(ApplicationDbContext context, IShoppingListService shoppingListService)
     {
         _context = context;
+        _shoppingListService = shoppingListService;
     }
 
     public async Task<IActionResult> Index()
     {
-        var lists = await GetUserLists()
+        var lists = await _shoppingListService.GetUserLists(GetCurrentUserId())
             .AsNoTracking()
             .Include(list => list.ShoppingGroup)
             .OrderBy(list => list.ShoppingGroup.Name)
@@ -37,7 +40,7 @@ public class ShoppingListsController : Controller
     [HttpGet]
     public async Task<IActionResult> Create(int groupId)
     {
-        var group = await GetUserGroups()
+        var group = await _shoppingListService.GetUserGroups(GetCurrentUserId())
             .AsNoTracking()
             .FirstOrDefaultAsync(existingGroup => existingGroup.Id == groupId);
 
@@ -58,7 +61,7 @@ public class ShoppingListsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(CreateShoppingListViewModel model)
     {
-        var group = await GetUserGroups()
+        var group = await _shoppingListService.GetUserGroups(GetCurrentUserId())
             .FirstOrDefaultAsync(existingGroup => existingGroup.Id == model.ShoppingGroupId);
 
         if (group is null)
@@ -72,14 +75,11 @@ public class ShoppingListsController : Controller
             return View(model);
         }
 
-        var shoppingList = new ShoppingList
+        var shoppingList = await _shoppingListService.CreateListAsync(model, GetCurrentUserId());
+        if (shoppingList is null)
         {
-            Name = model.Name,
-            ShoppingGroupId = model.ShoppingGroupId
-        };
-
-        _context.ShoppingLists.Add(shoppingList);
-        await _context.SaveChangesAsync();
+            return NotFound();
+        }
         TempData["SuccessMessage"] = "Список создан.";
 
         return RedirectToAction(nameof(Details), new { id = shoppingList.Id });
@@ -88,7 +88,7 @@ public class ShoppingListsController : Controller
     [HttpGet]
     public async Task<IActionResult> Edit(int id)
     {
-        var shoppingList = await GetUserLists()
+        var shoppingList = await _shoppingListService.GetUserLists(GetCurrentUserId())
             .AsNoTracking()
             .FirstOrDefaultAsync(list => list.Id == id);
 
@@ -115,7 +115,7 @@ public class ShoppingListsController : Controller
             return BadRequest();
         }
 
-        var shoppingList = await GetUserLists()
+        var shoppingList = await _shoppingListService.GetUserLists(GetCurrentUserId())
             .FirstOrDefaultAsync(list => list.Id == id);
 
         if (shoppingList is null)
@@ -129,9 +129,10 @@ public class ShoppingListsController : Controller
             return View(model);
         }
 
-        shoppingList.Name = model.Name;
-        shoppingList.IsArchived = model.IsArchived;
-        await _context.SaveChangesAsync();
+        if (!await _shoppingListService.UpdateListAsync(id, model, GetCurrentUserId()))
+        {
+            return NotFound();
+        }
         TempData["SuccessMessage"] = "Изменения сохранены.";
 
         return RedirectToAction(nameof(Details), new { id = shoppingList.Id });
@@ -141,7 +142,7 @@ public class ShoppingListsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ToggleArchive(int id)
     {
-        var shoppingList = await GetUserLists()
+        var shoppingList = await _shoppingListService.GetUserLists(GetCurrentUserId())
             .FirstOrDefaultAsync(list => list.Id == id);
 
         if (shoppingList is null)
@@ -149,8 +150,16 @@ public class ShoppingListsController : Controller
             return NotFound();
         }
 
-        shoppingList.IsArchived = !shoppingList.IsArchived;
-        await _context.SaveChangesAsync();
+        if (!await _shoppingListService.CanManageListAsync(id, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
+        shoppingList = await _shoppingListService.ToggleArchiveAsync(id, GetCurrentUserId());
+        if (shoppingList is null)
+        {
+            return NotFound();
+        }
         TempData["SuccessMessage"] = shoppingList.IsArchived
             ? "Список архивирован."
             : "Список восстановлен из архива.";
@@ -162,7 +171,7 @@ public class ShoppingListsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id)
     {
-        var shoppingList = await GetUserLists()
+        var shoppingList = await _shoppingListService.GetUserLists(GetCurrentUserId())
             .FirstOrDefaultAsync(list => list.Id == id);
 
         if (shoppingList is null)
@@ -170,9 +179,17 @@ public class ShoppingListsController : Controller
             return NotFound();
         }
 
+        if (!await _shoppingListService.CanManageListAsync(id, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
         var groupId = shoppingList.ShoppingGroupId;
-        _context.ShoppingLists.Remove(shoppingList);
-        await _context.SaveChangesAsync();
+        shoppingList = await _shoppingListService.DeleteListAsync(id, GetCurrentUserId());
+        if (shoppingList is null)
+        {
+            return NotFound();
+        }
         TempData["SuccessMessage"] = "Список удалён.";
 
         return RedirectToAction("Details", "ShoppingGroups", new { id = groupId });
@@ -180,7 +197,7 @@ public class ShoppingListsController : Controller
 
     public async Task<IActionResult> Details(int id, string filter = ShoppingItemFilter.All, string? search = null, string? category = null, string sort = ShoppingItemSortOrder.CreatedDesc)
     {
-        var shoppingList = await GetUserLists()
+        var shoppingList = await _shoppingListService.GetUserLists(GetCurrentUserId())
             .AsNoTracking()
             .Include(list => list.ShoppingGroup)
             .Include(list => list.Items)
@@ -196,6 +213,12 @@ public class ShoppingListsController : Controller
             return NotFound();
         }
 
+        var viewModel = await BuildDetailsViewModelAsync(shoppingList, filter, search, category, sort);
+        return View(viewModel);
+    }
+
+    private async Task<ShoppingListDetailsViewModel> BuildDetailsViewModelAsync(ShoppingList shoppingList, string filter, string? search, string? category, string sort, ShoppingItemFormViewModel? addItemForm = null)
+    {
         var normalizedFilter = NormalizeFilter(filter);
         var normalizedCategory = NormalizeCategory(category);
         var normalizedSort = NormalizeSort(sort);
@@ -236,8 +259,11 @@ public class ShoppingListsController : Controller
             .ToListAsync();
 
         var groupMembers = await GetGroupMembersAsync(shoppingList.ShoppingGroupId);
+        addItemForm ??= new ShoppingItemFormViewModel { ShoppingListId = shoppingList.Id };
+        addItemForm.ShoppingListId = shoppingList.Id;
+        addItemForm.GroupMembers = groupMembers;
 
-        return View(new ShoppingListDetailsViewModel
+        return new ShoppingListDetailsViewModel
         {
             ShoppingList = shoppingList,
             Filter = normalizedFilter,
@@ -251,18 +277,15 @@ public class ShoppingListsController : Controller
             Items = items.ToList(),
             GroupMembers = groupMembers,
             HistoryEntries = historyEntries,
-            AddItemForm = new ShoppingItemFormViewModel
-            {
-                ShoppingListId = shoppingList.Id
-            }
-        });
+            AddItemForm = addItemForm
+        };
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AddItem([Bind(Prefix = "AddItemForm")] ShoppingItemFormViewModel model)
     {
-        var shoppingList = await GetUserLists()
+        var shoppingList = await _shoppingListService.GetUserLists(GetCurrentUserId())
             .FirstOrDefaultAsync(list => list.Id == model.ShoppingListId);
 
         if (shoppingList is null)
@@ -282,37 +305,27 @@ public class ShoppingListsController : Controller
         if (!ModelState.IsValid)
         {
             TempData["ErrorMessage"] = "Проверьте данные товара.";
-            return RedirectToAction(nameof(Details), new { id = model.ShoppingListId });
+            var detailsList = await _shoppingListService.GetUserLists(GetCurrentUserId())
+                .AsNoTracking()
+                .Include(list => list.ShoppingGroup)
+                .Include(list => list.Items)
+                    .ThenInclude(item => item.CreatedByUser)
+                .Include(list => list.Items)
+                    .ThenInclude(item => item.PurchasedByUser)
+                .Include(list => list.Items)
+                    .ThenInclude(item => item.AssignedToUser)
+                .FirstAsync(list => list.Id == model.ShoppingListId);
+            return View("Details", await BuildDetailsViewModelAsync(detailsList, ShoppingItemFilter.All, null, null, ShoppingItemSortOrder.CreatedDesc, model));
         }
 
         var userId = GetCurrentUserId();
         var unit = ResolveUnit(model);
         var assignedUserText = await GetAssignedUserDisplayAsync(model.AssignedToUserId);
-        var item = new ShoppingItem
+        var item = await _shoppingListService.AddItemAsync(model, userId, assignedUserText);
+        if (item is null)
         {
-            ShoppingListId = model.ShoppingListId,
-            Name = model.Name,
-            Quantity = model.Quantity,
-            Unit = unit,
-            Category = model.Category,
-            Comment = NormalizeComment(model.Comment),
-            Priority = model.Priority,
-            EstimatedPrice = model.EstimatedPrice,
-            AssignedToUserId = NormalizeAssignedUserId(model.AssignedToUserId),
-            CreatedByUserId = userId,
-            HistoryEntries =
-            {
-                new ItemHistory
-                {
-                    ApplicationUserId = userId,
-                    Action = "Created",
-                    NewValue = FormatItemValue(model.Name, model.Quantity, unit, model.Category, model.Comment, model.Priority, model.EstimatedPrice, assignedUserText)
-                }
-            }
-        };
-
-        _context.ShoppingItems.Add(item);
-        await _context.SaveChangesAsync();
+            return NotFound();
+        }
         TempData["SuccessMessage"] = "Товар добавлен.";
 
         return RedirectToAction(nameof(Details), new { id = model.ShoppingListId });
@@ -321,7 +334,7 @@ public class ShoppingListsController : Controller
     [HttpGet]
     public async Task<IActionResult> EditItem(int id)
     {
-        var item = await GetUserItems()
+        var item = await _shoppingListService.GetUserItems(GetCurrentUserId())
             .AsNoTracking()
             .Include(item => item.ShoppingList)
             .Include(item => item.AssignedToUser)
@@ -348,7 +361,7 @@ public class ShoppingListsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> EditItem(int id, ShoppingItemFormViewModel model)
     {
-        var item = await GetUserItems()
+        var item = await _shoppingListService.GetUserItems(GetCurrentUserId())
             .Include(item => item.ShoppingList)
             .Include(item => item.AssignedToUser)
             .FirstOrDefaultAsync(existingItem => existingItem.Id == id);
@@ -378,25 +391,10 @@ public class ShoppingListsController : Controller
         var unit = ResolveUnit(model);
         var oldAssignedUserText = FormatAssignedUser(item.AssignedToUser);
         var newAssignedUserText = await GetAssignedUserDisplayAsync(model.AssignedToUserId);
-        var oldValue = FormatItemValue(item.Name, item.Quantity, item.Unit, item.Category, item.Comment, item.Priority, item.EstimatedPrice, oldAssignedUserText);
-
-        item.Name = model.Name;
-        item.Quantity = model.Quantity;
-        item.Unit = unit;
-        item.Category = model.Category;
-        item.Comment = NormalizeComment(model.Comment);
-        item.Priority = model.Priority;
-        item.EstimatedPrice = model.EstimatedPrice;
-        item.AssignedToUserId = NormalizeAssignedUserId(model.AssignedToUserId);
-        item.HistoryEntries.Add(new ItemHistory
+        if (!await _shoppingListService.UpdateItemAsync(id, model, userId, oldAssignedUserText, newAssignedUserText))
         {
-            ApplicationUserId = userId,
-            Action = "Updated",
-            OldValue = oldValue,
-            NewValue = FormatItemValue(item.Name, item.Quantity, item.Unit, item.Category, item.Comment, item.Priority, item.EstimatedPrice, newAssignedUserText)
-        });
-
-        await _context.SaveChangesAsync();
+            return NotFound();
+        }
         TempData["SuccessMessage"] = "Изменения сохранены.";
 
         return RedirectToAction(nameof(Details), new { id = item.ShoppingListId });
@@ -406,7 +404,7 @@ public class ShoppingListsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteItem(int id)
     {
-        var item = await GetUserItems()
+        var item = await _shoppingListService.GetUserItems(GetCurrentUserId())
             .Include(item => item.ShoppingList)
             .FirstOrDefaultAsync(existingItem => existingItem.Id == id);
 
@@ -422,8 +420,10 @@ public class ShoppingListsController : Controller
         }
 
         var listId = item.ShoppingListId;
-        _context.ShoppingItems.Remove(item);
-        await _context.SaveChangesAsync();
+        if (await _shoppingListService.DeleteItemAsync(id, GetCurrentUserId()) is null)
+        {
+            return NotFound();
+        }
         TempData["SuccessMessage"] = "Товар удалён.";
 
         return RedirectToAction(nameof(Details), new { id = listId });
@@ -433,7 +433,7 @@ public class ShoppingListsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> TogglePurchased(int id)
     {
-        var item = await GetUserItems()
+        var item = await _shoppingListService.GetUserItems(GetCurrentUserId())
             .Include(item => item.ShoppingList)
             .FirstOrDefaultAsync(existingItem => existingItem.Id == id);
 
@@ -448,18 +448,11 @@ public class ShoppingListsController : Controller
             return RedirectToAction(nameof(Details), new { id = item.ShoppingListId });
         }
 
-        var userId = GetCurrentUserId();
-        item.IsPurchased = !item.IsPurchased;
-        item.PurchasedAtUtc = item.IsPurchased ? DateTime.UtcNow : null;
-        item.PurchasedByUserId = item.IsPurchased ? userId : null;
-        item.HistoryEntries.Add(new ItemHistory
+        item = await _shoppingListService.TogglePurchasedAsync(id, GetCurrentUserId());
+        if (item is null)
         {
-            ApplicationUserId = userId,
-            Action = item.IsPurchased ? "Purchased" : "PurchaseCanceled",
-            NewValue = item.Name
-        });
-
-        await _context.SaveChangesAsync();
+            return NotFound();
+        }
         TempData["SuccessMessage"] = item.IsPurchased
             ? "Товар отмечен как купленный."
             : "Отметка покупки снята.";
