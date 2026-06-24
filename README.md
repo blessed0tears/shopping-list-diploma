@@ -43,6 +43,36 @@
 - `Documentation` — материалы и документы дипломной работы, включая ER-диаграмму базы данных и пользовательскую инструкцию.
 - `Migrations` — миграции Entity Framework Core для создания схемы SQL Server.
 
+## Быстрый запуск
+
+Проект использует **SQL Server LocalDB** и строку подключения `DefaultConnection`:
+
+```text
+Server=(localdb)\mssqllocaldb;Database=ShoppingListDiplomaDb;Trusted_Connection=True;MultipleActiveResultSets=true
+```
+
+Перед запуском убедитесь, что установлен .NET 8 SDK и SQL Server LocalDB. В режиме `Development` приложение автоматически применяет миграции Entity Framework Core при старте, но базу также можно обновить вручную.
+
+### Visual Studio / Package Manager Console
+
+```powershell
+Update-Database
+```
+
+### CLI
+
+```bash
+dotnet restore
+dotnet ef database update
+dotnet run
+```
+
+Минимальная команда запуска после восстановления пакетов и применения миграций:
+
+```bash
+dotnet run
+```
+
 ## Запуск в Visual Studio
 
 1. Установите Visual Studio 2022 с workload **ASP.NET and web development**.
@@ -122,4 +152,4 @@ dotnet run
 Update-Database
 ```
 
-Если были проблемы со старой тестовой базой, используйте новую чистую базу `ShoppingListDiplomaDb_Final` из `appsettings.json`.
+Основная локальная база для дипломного проекта: `ShoppingListDiplomaDb`.

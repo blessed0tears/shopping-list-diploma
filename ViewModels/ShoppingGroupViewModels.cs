@@ -11,7 +11,7 @@ public class ShoppingGroupIndexViewModel
 public class CreateShoppingGroupViewModel
 {
     [Required(ErrorMessage = "Введите название группы.")]
-    [StringLength(150, ErrorMessage = "Название группы не должно превышать {1} символов.")]
+    [StringLength(150, ErrorMessage = "Название группы не должно превышать {1} символов. Сократите название и попробуйте снова.")]
     [Display(Name = "Название группы")]
     public string Name { get; set; } = string.Empty;
 

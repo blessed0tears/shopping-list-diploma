@@ -4,6 +4,8 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ShoppingListDiploma", "ShoppingListDiploma.csproj", "{F5D5A3AE-0FCF-4F0C-9D0D-6C8538500C0F}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ShoppingListDiploma.Tests", "ShoppingListDiploma.Tests\ShoppingListDiploma.Tests.csproj", "{A8B83B18-3A2B-4C92-9EC5-D7622EFCD7BB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -14,6 +16,10 @@ Global
 		{F5D5A3AE-0FCF-4F0C-9D0D-6C8538500C0F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F5D5A3AE-0FCF-4F0C-9D0D-6C8538500C0F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F5D5A3AE-0FCF-4F0C-9D0D-6C8538500C0F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A8B83B18-3A2B-4C92-9EC5-D7622EFCD7BB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A8B83B18-3A2B-4C92-9EC5-D7622EFCD7BB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A8B83B18-3A2B-4C92-9EC5-D7622EFCD7BB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A8B83B18-3A2B-4C92-9EC5-D7622EFCD7BB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

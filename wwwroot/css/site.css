@@ -195,3 +195,87 @@ body {
 .footer {
   background: var(--app-surface);
 }
+
+/* Адаптация интерфейса для мобильных устройств */
+@media (max-width: 576px) {
+    body {
+        font-size: 14px;
+    }
+
+    .container,
+    .app-container {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+    h1, .h1 {
+        font-size: 24px;
+        margin-bottom: 16px;
+    }
+
+    h2, .h2 {
+        font-size: 20px;
+        margin-bottom: 14px;
+    }
+
+    h3, .h3 {
+        font-size: 18px;
+    }
+
+    .card {
+        margin-bottom: 12px;
+    }
+
+    .card-body {
+        padding: 12px;
+    }
+
+    .btn {
+        width: 100%;
+        margin-bottom: 8px;
+    }
+
+    .btn-group,
+    .button-group,
+    .actions {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    input,
+    select,
+    textarea {
+        font-size: 14px;
+    }
+
+    .form-control,
+    .form-select {
+        margin-bottom: 8px;
+    }
+
+    .mobile-table {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .mobile-table table {
+        min-width: 800px;
+        font-size: 13px;
+    }
+
+    .mobile-table th,
+    .mobile-table td {
+        white-space: nowrap;
+        vertical-align: middle;
+    }
+
+    .navbar-nav {
+        gap: 6px;
+    }
+
+    .navbar .btn,
+    .navbar a {
+        margin-bottom: 6px;
+    }
+}
